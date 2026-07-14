@@ -29,66 +29,63 @@
 ## 预览
 
 <p align="center">
-  <img src="docs/screenshot/zh/usage-tab-overview.png" alt="用量页 — 双池仪表盘与本周期总览" width="440" />
+  <img src="docs/screenshot/zh/usage-tab-overview.png" alt="用量页 — 双池仪表盘与本周期总览" width="720" />
 </p>
 <p align="center"><sub><b>用量</b> — 今日统计、API / Auto + Composer 双池、本周期花费</sub></p>
 
----
+### 图表与分析
 
-### 额度下降曲线 & 每日用量
+<table>
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/quota-decline-and-daily-charts.png" alt="额度下降曲线与每日用量占比图" width="98%" />
+      <br><sub>额度下降曲线 — Total / API / Auto</sub>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/daily-spend-and-model-chart.png" alt="每日花费柱状图与模型花费饼图" width="98%" />
+      <br><sub>每日花费（美元）· 模型分布</sub>
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <img src="docs/screenshot/zh/quota-decline-and-daily-charts.png" alt="额度下降曲线与每日用量占比图" width="440" />
-</p>
-<p align="center"><sub>Total / API / Auto 三条额度曲线 · 每日占 Billing 100% 柱状图</sub></p>
+### 明细与计费
 
----
+<table>
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/model-distribution-and-events.png" alt="模型筛选与用量明细列表" width="98%" />
+      <br><sub>分页明细 · 模型筛选</sub>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/usage-events-pricing-detail.png" alt="展开明细 — Token 与规则计价" width="98%" />
+      <br><sub>Token 明细 · 计费规则与估价</sub>
+    </td>
+  </tr>
+</table>
 
-### 每日花费 & 模型分布
+### 账单与账户
 
-<p align="center">
-  <img src="docs/screenshot/zh/daily-spend-and-model-chart.png" alt="每日花费柱状图与模型花费饼图" width="440" />
-</p>
-<p align="center"><sub>柱顶美元标签 · 按模型花费占比</sub></p>
-
----
-
-### 用量明细 & 计费规则
-
-<p align="center">
-  <img src="docs/screenshot/zh/model-distribution-and-events.png" alt="模型筛选与用量明细列表" width="440" />
-</p>
-<p align="center"><sub>全量缓存筛选 · 分页明细 · 模型花费分布</sub></p>
-
-<p align="center">
-  <img src="docs/screenshot/zh/usage-events-pricing-detail.png" alt="展开明细 — Token 与规则计价" width="440" />
-</p>
-<p align="center"><sub>展开单条 — 官方计费规则与规则计算价格</sub></p>
-
----
-
-### 账单 & 模型 Token
-
-<p align="center">
-  <img src="docs/screenshot/zh/billing-tab-overview.png" alt="账单页 — 双池状态与额度说明" width="440" />
-</p>
-<p align="center"><sub><b>账单</b> — 周期用量、双池状态、API 额度用尽说明</sub></p>
-
-<p align="center">
-  <img src="docs/screenshot/zh/model-token-usage-and-account.png" alt="各模型 Token 用量与账户信息" width="440" />
-</p>
-<p align="center"><sub>按模型 Token 汇总 · 账户与套餐</sub></p>
-
----
+<table>
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/billing-tab-overview.png" alt="账单页 — 双池状态与额度说明" width="98%" />
+      <br><sub><b>账单</b> — 周期用量、双池状态</sub>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/model-token-usage-and-account.png" alt="各模型 Token 用量与账户信息" width="98%" />
+      <br><sub>按模型 Token · 账户与套餐</sub>
+    </td>
+  </tr>
+</table>
 
 ### 设置
 
 <p align="center">
-  <img src="docs/screenshot/zh/settings.png" alt="设置 — Token 与语言切换" width="440" />
+  <img src="docs/screenshot/zh/settings.png" alt="设置 — Token 与语言切换" width="420" />
 </p>
-<p align="center"><sub>Session Token · 自动刷新间隔 · <b>语言：跟随系统 / English / 中文</b></sub></p>
+<p align="center"><sub>Session Token · 自动刷新 · <b>语言：跟随系统 / English / 中文</b></sub></p>
 
-> 全部截图：[`docs/screenshot/zh/`](docs/screenshot/zh/) · [`docs/screenshot/en/`](docs/screenshot/en/)
+<p align="center"><sub>更多截图 → <a href="docs/screenshot/zh/">docs/screenshot/zh</a> · <a href="docs/screenshot/en/">docs/screenshot/en</a></sub></p>
 
 ---
 

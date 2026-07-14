@@ -29,66 +29,63 @@
 ## Preview
 
 <p align="center">
-  <img src="docs/screenshot/en/usage-tab-overview.png" alt="Usage tab — dual pools and cycle summary" width="440" />
+  <img src="docs/screenshot/en/usage-tab-overview.png" alt="Usage tab — dual pools and cycle summary" width="720" />
 </p>
-<p align="center"><sub><b>Usage</b> — today stats, API / Auto + Composer pools, and billing cycle overview</sub></p>
+<p align="center"><sub><b>Usage</b> — today stats, API / Auto + Composer pools, billing cycle overview</sub></p>
 
----
+### Charts & analytics
 
-### Quota decline & daily charts
+<table>
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/quota-decline-and-daily-charts.png" alt="Quota decline curve and daily usage percent chart" width="98%" />
+      <br><sub>Quota decline — Total / API / Auto</sub>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/daily-spend-and-model-chart.png" alt="Daily spend bar chart and model spend pie chart" width="98%" />
+      <br><sub>Daily spend (USD) · model breakdown</sub>
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <img src="docs/screenshot/zh/quota-decline-and-daily-charts.png" alt="Quota decline curve and daily usage percent chart" width="440" />
-</p>
-<p align="center"><sub>Total / API / Auto quota curves · daily usage as % of billing</sub></p>
+### Events & pricing
 
----
+<table>
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/en/model-distribution-and-events.png" alt="Model filter and usage event list" width="98%" />
+      <br><sub>Paginated events · model filter</sub>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/usage-events-pricing-detail.png" alt="Expanded usage event with token breakdown" width="98%" />
+      <br><sub>Token breakdown · pricing rules & estimates</sub>
+    </td>
+  </tr>
+</table>
 
-### Daily spend & model breakdown
+### Billing & account
 
-<p align="center">
-  <img src="docs/screenshot/zh/daily-spend-and-model-chart.png" alt="Daily spend bar chart and model spend pie chart" width="440" />
-</p>
-<p align="center"><sub>Daily spend with USD bar labels · spend distribution by model</sub></p>
-
----
-
-### Usage events & pricing rules
-
-<p align="center">
-  <img src="docs/screenshot/en/model-distribution-and-events.png" alt="Model filter and usage event pricing detail" width="440" />
-</p>
-<p align="center"><sub>Paginated events · model filter · official pricing rules & cost estimates</sub></p>
-
-<p align="center">
-  <img src="docs/screenshot/zh/usage-events-pricing-detail.png" alt="Expanded usage event with token breakdown" width="440" />
-</p>
-<p align="center"><sub>Expanded event — token breakdown and rule-based price calculation</sub></p>
-
----
-
-### Billing & token usage
-
-<p align="center">
-  <img src="docs/screenshot/en/billing-tab-overview.png" alt="Billing tab with dual pools and allowance breakdown" width="440" />
-</p>
-<p align="center"><sub><b>Billing</b> — cycle usage, dual-pool status, allowance notes</sub></p>
-
-<p align="center">
-  <img src="docs/screenshot/zh/model-token-usage-and-account.png" alt="Per-model token usage and account info" width="440" />
-</p>
-<p align="center"><sub>Per-model token totals · account & plan details</sub></p>
-
----
+<table>
+  <tr>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/en/billing-tab-overview.png" alt="Billing tab with dual pools and allowance breakdown" width="98%" />
+      <br><sub><b>Billing</b> — cycle usage, dual-pool status</sub>
+    </td>
+    <td width="50%" valign="top" align="center">
+      <img src="docs/screenshot/zh/model-token-usage-and-account.png" alt="Per-model token usage and account info" width="98%" />
+      <br><sub>Per-model tokens · account & plan</sub>
+    </td>
+  </tr>
+</table>
 
 ### Settings
 
 <p align="center">
-  <img src="docs/screenshot/en/settings.png" alt="Settings — session token and language picker" width="440" />
+  <img src="docs/screenshot/en/settings.png" alt="Settings — session token and language picker" width="420" />
 </p>
-<p align="center"><sub>Session token · auto-refresh pacing · <b>Language: System / English / 中文</b></sub></p>
+<p align="center"><sub>Session token · auto-refresh · <b>Language: System / English / 中文</b></sub></p>
 
-> All screenshots: [`docs/screenshot/en/`](docs/screenshot/en/) · [`docs/screenshot/zh/`](docs/screenshot/zh/)
+<p align="center"><sub>More screenshots → <a href="docs/screenshot/en/">docs/screenshot/en</a> · <a href="docs/screenshot/zh/">docs/screenshot/zh</a></sub></p>
 
 ---
 
