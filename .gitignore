@@ -1,0 +1,8 @@
+.build/
+dist/
+.swiftpm/
+.DS_Store
+*.xcuserstate
+xcuserdata/
+.cursor/
+*.zip
