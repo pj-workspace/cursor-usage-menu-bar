@@ -1,15 +1,28 @@
 # cursor-usage-menu-bar
 
-原生 macOS 菜单栏应用，在本地展示 [Cursor](https://cursor.com) 用量、花费与账单 — SwiftUI 三页仪表盘、双用量池分析、图表与中英双语。
+<p align="center">
+  原生 macOS 菜单栏应用，在本地展示 <a href="https://cursor.com">Cursor</a> 用量、花费与账单 — SwiftUI 三页仪表盘、双用量池分析、图表与中英双语。
+</p>
 
-> **English** · [README.md](README.md)
+<p align="center">
+  <strong>English</strong> · <a href="README.md">README.md</a>
+</p>
 
-[![Build](https://github.com/pj-workspace/cursor-usage-menu-bar/actions/workflows/build.yml/badge.svg)](https://github.com/pj-workspace/cursor-usage-menu-bar/actions/workflows/build.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey)](https://developer.apple.com/macos/)
-[![Swift](https://img.shields.io/badge/Swift-5.9-orange)](https://swift.org)
+<p align="center">
+  <a href="https://github.com/pj-workspace/cursor-usage-menu-bar/actions/workflows/build.yml"><img src="https://github.com/pj-workspace/cursor-usage-menu-bar/actions/workflows/build.yml/badge.svg?branch=main" alt="Build" /></a>
+  &nbsp;
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  &nbsp;
+  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey" alt="macOS 14+" /></a>
+  &nbsp;
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift 5.9" /></a>
+</p>
 
-`cursor` · `macos` · `menu-bar` · `swift` · `swiftui` · `usage-tracker` · `billing` · `developer-tools` · `menubar-extra` · `cursor-ide`
+<p align="center">
+  <sub>
+    <code>cursor</code> · <code>macos</code> · <code>menu-bar</code> · <code>swift</code> · <code>swiftui</code> · <code>usage-tracker</code> · <code>billing</code> · <code>developer-tools</code> · <code>menubar-extra</code> · <code>cursor-ide</code>
+  </sub>
+</p>
 
 ---
 

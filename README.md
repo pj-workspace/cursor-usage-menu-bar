@@ -1,15 +1,28 @@
 # cursor-usage-menu-bar
 
-Native macOS menu bar app for [Cursor](https://cursor.com) usage, spending, and billing — SwiftUI dashboard with dual-pool analytics, charts, and EN/ZH i18n.
+<p align="center">
+  Native macOS menu bar app for <a href="https://cursor.com">Cursor</a> usage, spending, and billing — SwiftUI dashboard with dual-pool analytics, charts, and EN/ZH i18n.
+</p>
 
-> **中文文档** · [README.zh.md](README.zh.md)
+<p align="center">
+  <strong>中文文档</strong> · <a href="README.zh.md">README.zh.md</a>
+</p>
 
-[![Build](https://github.com/pj-workspace/cursor-usage-menu-bar/actions/workflows/build.yml/badge.svg)](https://github.com/pj-workspace/cursor-usage-menu-bar/actions/workflows/build.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey)](https://developer.apple.com/macos/)
-[![Swift](https://img.shields.io/badge/Swift-5.9-orange)](https://swift.org)
+<p align="center">
+  <a href="https://github.com/pj-workspace/cursor-usage-menu-bar/actions/workflows/build.yml"><img src="https://github.com/pj-workspace/cursor-usage-menu-bar/actions/workflows/build.yml/badge.svg?branch=main" alt="Build" /></a>
+  &nbsp;
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" /></a>
+  &nbsp;
+  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/platform-macOS%2014%2B-lightgrey" alt="macOS 14+" /></a>
+  &nbsp;
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.9-orange" alt="Swift 5.9" /></a>
+</p>
 
-`cursor` · `macos` · `menu-bar` · `swift` · `swiftui` · `usage-tracker` · `billing` · `developer-tools` · `menubar-extra` · `cursor-ide`
+<p align="center">
+  <sub>
+    <code>cursor</code> · <code>macos</code> · <code>menu-bar</code> · <code>swift</code> · <code>swiftui</code> · <code>usage-tracker</code> · <code>billing</code> · <code>developer-tools</code> · <code>menubar-extra</code> · <code>cursor-ide</code>
+  </sub>
+</p>
 
 ---
 
