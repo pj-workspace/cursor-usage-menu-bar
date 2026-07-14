@@ -189,10 +189,12 @@ struct UsageEvent: Codable, Sendable, Identifiable {
     }
 
     var totalTokens: Int {
-        (tokenUsage?.inputTokens ?? 0)
-            + (tokenUsage?.outputTokens ?? 0)
-            + (tokenUsage?.cacheWriteTokens ?? 0)
-            + (tokenUsage?.cacheReadTokens ?? 0)
+        guard let tokenUsage else { return 0 }
+        let input = tokenUsage.inputTokens ?? 0
+        let output = tokenUsage.outputTokens ?? 0
+        let cacheWrite = tokenUsage.cacheWriteTokens ?? 0
+        let cacheRead = tokenUsage.cacheReadTokens ?? 0
+        return input + output + cacheWrite + cacheRead
     }
 
     var kindLabel: String {
