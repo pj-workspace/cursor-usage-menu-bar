@@ -191,7 +191,7 @@ enum ModelPricingCatalog {
     }
 
     private static let entries: [(slugs: [String], rule: Rule)] = [
-        (["auto"], Rule(
+        (["auto", "default"], Rule(
             displayName: "Auto",
             provider: "Cursor",
             pool: .firstParty,
@@ -199,9 +199,9 @@ enum ModelPricingCatalog {
             cacheWritePerMillion: nil,
             cacheReadPerMillion: 0.25,
             outputPerMillion: 6.0,
-            notes: "输入与缓存写入合并计费 $1.25/1M；由 Cursor 自动选模型。"
+            notes: "输入与缓存写入合并计费 $1.25/1M；由 Cursor 自动选模型。事件里常见 model=default。"
         )),
-        (["composer-2.5", "composer-2"], Rule(
+        (["composer-2.5", "composer-2", "composer-2.5-fast"], Rule(
             displayName: "Composer 2.5",
             provider: "Cursor",
             pool: .firstParty,
@@ -210,6 +210,16 @@ enum ModelPricingCatalog {
             cacheReadPerMillion: 0.2,
             outputPerMillion: 2.5,
             notes: "Cursor 自研 Agent 模型，走第一方模型池。"
+        )),
+        (["agent_review", "agent-review"], Rule(
+            displayName: "Agent Review",
+            provider: "Cursor",
+            pool: .api,
+            inputPerMillion: nil,
+            cacheWritePerMillion: nil,
+            cacheReadPerMillion: nil,
+            outputPerMillion: nil,
+            notes: "走 API 池（与 Cursor 官网 Included Usage 一致）。"
         )),
         (["composer-1"], Rule(
             displayName: "Composer 1",

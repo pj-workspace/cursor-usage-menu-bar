@@ -10,6 +10,7 @@ struct UsageEventListView: View {
     let totalPages: Int
     let pageSize: Int
     let isLoading: Bool
+    var forceLocalPaging: Bool = false
     let onPageChange: (Int) -> Void
 
     @State private var searchText = ""
@@ -22,7 +23,9 @@ struct UsageEventListView: View {
     }
 
     private var isGlobalFilterActive: Bool {
-        selectedModel != L10n.allModelsMarker || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        forceLocalPaging
+            || selectedModel != L10n.allModelsMarker
+            || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var canFilterGlobally: Bool {
@@ -34,7 +37,7 @@ struct UsageEventListView: View {
         guard let cachedEvents else { return [] }
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return cachedEvents.filter { event in
-            let matchesModel = selectedModel == L10n.allModelsMarker || event.simplifiedModel == selectedModel
+            let matchesModel = selectedModel == L10n.allModelsMarker || event.model == selectedModel
             guard matchesModel else { return false }
             guard !query.isEmpty else { return true }
             let haystack = [
@@ -398,9 +401,9 @@ private struct UsageEventRow: View {
                 HStack(alignment: .top, spacing: 8) {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 6) {
-                            Text(event.simplifiedModel)
+                            Text(event.model ?? event.simplifiedModel)
                                 .font(.caption.weight(.semibold))
-                                .lineLimit(1)
+                                .lineLimit(2)
                             StatusBadge(
                                 text: event.kindLabel(language: l10n.resolved),
                                 isActive: event.isChargeable ?? true

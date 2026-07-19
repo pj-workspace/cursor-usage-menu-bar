@@ -56,6 +56,7 @@ struct DashboardView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
+            dayFilterControl
             if viewModel.isInitialLoading {
                 ProgressView().controlSize(.small)
             } else if let percent = viewModel.dashboard.usageLimit?.cyclePercentUsed
@@ -68,6 +69,37 @@ struct DashboardView: View {
         }
         .padding(.horizontal, PanelStyle.padding)
         .padding(.vertical, 10)
+    }
+
+    private var dayFilterControl: some View {
+        Menu {
+            Button(l10n.t(.dayFilterAll)) {
+                viewModel.clearDayFilter()
+            }
+            if !viewModel.availableDays.isEmpty {
+                Divider()
+                ForEach(viewModel.availableDays, id: \.self) { day in
+                    Button(day.formatted(.dateTime.month().day().weekday(.abbreviated).locale(l10n.resolved.locale))) {
+                        viewModel.selectDay(day)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "calendar")
+                Text(viewModel.formattedSelectedDayLabel(language: l10n.resolved))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.caption2.weight(.semibold))
+            }
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Color.secondary.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
     }
 
     private var tabPicker: some View {
@@ -86,9 +118,9 @@ struct DashboardView: View {
             if !viewModel.hasToken {
                 setupCard
             } else {
-                PanelCard(title: l10n.t(.today)) {
+                PanelCard(title: viewModel.isDayFilterActive ? l10n.t(.dayStats) : l10n.t(.today)) {
                     VStack(spacing: 8) {
-                        if let todayPercent = viewModel.todayStats.dailyPercent {
+                        if let todayPercent = viewModel.displayedDayStats.dailyPercent {
                             HStack {
                                 Text(l10n.t(.todayBillingPercent))
                                     .font(.caption)
@@ -101,110 +133,149 @@ struct DashboardView: View {
                             if let limit = viewModel.dashboard.usageLimit {
                                 PanelRow(
                                     label: l10n.t(.todayUsage),
-                                    value: limit.formatDailyUsage(viewModel.todayStats.usageUnits)
+                                    value: limit.formatDailyUsage(viewModel.displayedDayStats.usageUnits)
                                 )
                             }
                         }
-                        PanelRow(label: l10n.t(.requestCount), value: "\(viewModel.todayStats.eventCount)")
+                        PanelRow(label: l10n.t(.requestCount), value: "\(viewModel.displayedDayStats.eventCount)")
                         PanelRow(
                             label: l10n.t(.spend),
-                            value: viewModel.formattedCurrencyFromCents(viewModel.todayStats.totalChargedCents)
+                            value: viewModel.formattedCurrencyFromCents(viewModel.displayedDayStats.totalChargedCents)
                         )
-                        PanelRow(label: l10n.t(.token), value: formatTokens(viewModel.todayStats.totalTokens))
+                        PanelRow(label: l10n.t(.token), value: formatTokens(viewModel.displayedDayStats.totalTokens))
                     }
                 }
 
-                PanelCard(title: l10n.t(.cycleUsage)) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        if let limit = viewModel.dashboard.usageLimit {
-                            HStack {
-                                Text(l10n.t(.billingTotal))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Text(UsageAnalytics.formatPercent(limit.cyclePercentUsed))
-                                    .font(.headline.weight(.bold))
-                                    .monospacedDigit()
-                                if let cost = viewModel.dashboard.displayTotalCostCents {
-                                    Text("· \(viewModel.formattedCurrencyFromCents(cost))")
-                                        .font(.caption.weight(.medium))
+                if !viewModel.isDayFilterActive {
+                    PanelCard(title: l10n.t(.cycleUsage)) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            if let limit = viewModel.dashboard.usageLimit {
+                                HStack {
+                                    Text(l10n.t(.billingTotal))
+                                        .font(.caption)
                                         .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Text(UsageAnalytics.formatPercent(limit.cyclePercentUsed))
+                                        .font(.headline.weight(.bold))
+                                        .monospacedDigit()
+                                    if let cost = viewModel.dashboard.displayTotalCostCents {
+                                        Text("· \(viewModel.formattedCurrencyFromCents(cost))")
+                                            .font(.caption.weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                             }
-                        }
 
-                        UsagePoolsView(pools: viewModel.dashboard.usagePools)
+                            UsagePoolsView(pools: viewModel.dashboard.usagePools)
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            PanelRow(
-                                label: l10n.t(.cycleTotalSpend),
-                                value: viewModel.formattedTotalCost()
-                            )
-                            PanelRow(
-                                label: l10n.t(.apiUsed),
-                                value: viewModel.formattedCurrencyFromCents(
-                                    viewModel.dashboard.usagePools.first(where: { $0.id == "api" })?.usedCents
+                            VStack(alignment: .leading, spacing: 8) {
+                                PanelRow(
+                                    label: l10n.t(.cycleTotalSpend),
+                                    value: viewModel.formattedTotalCost()
                                 )
-                            )
-                            PanelRow(
-                                label: l10n.t(.autoBonusSpend),
-                                value: viewModel.formattedCurrencyFromCents(
-                                    viewModel.dashboard.periodUsage?.planUsage?.bonusSpend
+                                PanelRow(
+                                    label: l10n.t(.apiUsed),
+                                    value: viewModel.formattedCurrencyFromCents(
+                                        viewModel.dashboard.usagePools.first(where: { $0.id == "api" })?.usedCents
+                                    )
                                 )
+                                PanelRow(
+                                    label: l10n.t(.autoBonusSpend),
+                                    value: viewModel.formattedCurrencyFromCents(
+                                        viewModel.dashboard.periodUsage?.planUsage?.bonusSpend
+                                    )
+                                )
+                                PanelRow(
+                                    label: l10n.t(.apiIncludedLimit),
+                                    value: viewModel.formattedCurrencyFromCents(viewModel.summary?.planLimit)
+                                )
+                                PanelRow(label: l10n.t(.billingPeriod), value: viewModel.formattedBillingPeriod())
+                                PanelRow(label: l10n.t(.totalEvents), value: "\(viewModel.dashboard.totalEventCount)")
+                            }
+                        }
+                    }
+
+                    PanelCard(title: l10n.t(.quotaDeclineCurve)) {
+                        quotaChartSection(emptyMessage: l10n.t(.emptyQuotaCurve)) {
+                            QuotaDeclineChart(
+                                data: viewModel.dashboard.quotaCurves,
+                                limitContext: viewModel.dashboard.usageLimit
                             )
-                            PanelRow(
-                                label: l10n.t(.apiIncludedLimit),
-                                value: viewModel.formattedCurrencyFromCents(viewModel.summary?.planLimit)
+                        }
+                    }
+
+                    PanelCard(title: l10n.t(.dailyUsagePercent)) {
+                        chartSection(emptyMessage: l10n.t(.emptyDailyUsage)) {
+                            DailyUsagePercentChart(
+                                data: viewModel.dashboard.dailySpend,
+                                limitContext: viewModel.dashboard.usageLimit
                             )
-                            PanelRow(label: l10n.t(.billingPeriod), value: viewModel.formattedBillingPeriod())
-                            PanelRow(label: l10n.t(.totalEvents), value: "\(viewModel.dashboard.totalEventCount)")
+                            DailyUsagePercentList(
+                                data: viewModel.dashboard.dailySpend,
+                                limitContext: viewModel.dashboard.usageLimit
+                            )
+                        }
+                    }
+
+                    PanelCard(title: l10n.t(.dailySpend)) {
+                        chartSection(emptyMessage: l10n.t(.emptyDailySpend)) {
+                            DailySpendChart(data: viewModel.dashboard.dailySpend)
                         }
                     }
                 }
 
-                PanelCard(title: l10n.t(.quotaDeclineCurve)) {
-                    quotaChartSection(emptyMessage: l10n.t(.emptyQuotaCurve)) {
-                        QuotaDeclineChart(
-                            data: viewModel.dashboard.quotaCurves,
-                            limitContext: viewModel.dashboard.usageLimit
+                PanelCard(title: l10n.t(.includedUsage)) {
+                    if let includedUsage = viewModel.displayedIncludedUsage {
+                        IncludedUsageTable(
+                            summary: includedUsage,
+                            billingPeriod: viewModel.isDayFilterActive
+                                ? viewModel.formattedSelectedDayLabel(language: l10n.resolved)
+                                : viewModel.formattedBillingPeriod(),
+                            todayUsagePercent: viewModel.displayedDayStats.dailyPercent,
+                            cycleUsagePercent: viewModel.dashboard.usageLimit?.cyclePercentUsed
                         )
+                    } else {
+                        ChartEmptyState(message: l10n.t(.emptyIncludedUsage))
                     }
                 }
 
-                PanelCard(title: l10n.t(.dailyUsagePercent)) {
-                    chartSection(emptyMessage: l10n.t(.emptyDailyUsage)) {
-                        DailyUsagePercentChart(
-                            data: viewModel.dashboard.dailySpend,
-                            limitContext: viewModel.dashboard.usageLimit
-                        )
-                        DailyUsagePercentList(
-                            data: viewModel.dashboard.dailySpend,
-                            limitContext: viewModel.dashboard.usageLimit
-                        )
-                    }
-                }
-
-                PanelCard(title: l10n.t(.dailySpend)) {
-                    chartSection(emptyMessage: l10n.t(.emptyDailySpend)) {
-                        DailySpendChart(data: viewModel.dashboard.dailySpend)
+                PanelCard(title: l10n.t(.dailyModelShare)) {
+                    if viewModel.displayedModelShareDay == nil {
+                        if viewModel.isLoadingCharts {
+                            ChartLoadingState(message: l10n.t(.loadingChartData))
+                        } else if let error = viewModel.chartLoadError {
+                            ChartErrorState(message: error)
+                        } else {
+                            ChartEmptyState(message: l10n.t(.emptyDailyModelShare))
+                        }
+                    } else {
+                        DailyModelUsageChart(day: viewModel.displayedModelShareDay)
                     }
                 }
 
                 PanelCard(title: l10n.t(.modelSpendDistribution)) {
-                    ModelSpendChart(data: viewModel.dashboard.modelBreakdown)
+                    ModelSpendChart(data: viewModel.displayedModelBreakdown)
                 }
 
                 PanelCard(title: l10n.t(.usageDetails)) {
+                    let useLocal = viewModel.isDayFilterActive || viewModel.cachedUsageEvents != nil
+                    let localEvents = viewModel.filteredUsageEvents
                     UsageEventListView(
-                        cachedEvents: viewModel.cachedUsageEvents,
+                        cachedEvents: useLocal ? localEvents : viewModel.cachedUsageEvents,
                         availableModels: viewModel.availableUsageEventModels,
-                        events: viewModel.dashboard.events,
-                        totalCount: viewModel.dashboard.totalEventCount,
-                        currentPage: viewModel.dashboard.usageEventsPage,
-                        totalPages: viewModel.dashboard.usageEventsTotalPages,
+                        events: useLocal
+                            ? Array(localEvents.prefix(viewModel.dashboard.usageEventsPageSize))
+                            : viewModel.dashboard.events,
+                        totalCount: useLocal ? localEvents.count : viewModel.dashboard.totalEventCount,
+                        currentPage: useLocal ? 1 : viewModel.dashboard.usageEventsPage,
+                        totalPages: useLocal
+                            ? max(1, Int(ceil(Double(localEvents.count) / Double(max(1, viewModel.dashboard.usageEventsPageSize)))))
+                            : viewModel.dashboard.usageEventsTotalPages,
                         pageSize: viewModel.dashboard.usageEventsPageSize,
-                        isLoading: viewModel.isLoadingUsageEventsPage,
+                        isLoading: viewModel.isLoadingUsageEventsPage && !useLocal,
+                        forceLocalPaging: useLocal,
                         onPageChange: { page in
+                            guard !useLocal else { return }
                             Task { await viewModel.loadUsageEventsPage(page) }
                         }
                     )
@@ -341,6 +412,21 @@ struct DashboardView: View {
                                 )
                             }
                         }
+                    }
+                }
+
+                PanelCard(title: l10n.t(.includedUsage)) {
+                    if let includedUsage = viewModel.displayedIncludedUsage {
+                        IncludedUsageTable(
+                            summary: includedUsage,
+                            billingPeriod: viewModel.isDayFilterActive
+                                ? viewModel.formattedSelectedDayLabel(language: l10n.resolved)
+                                : viewModel.formattedBillingPeriod(),
+                            todayUsagePercent: viewModel.displayedDayStats.dailyPercent,
+                            cycleUsagePercent: viewModel.dashboard.usageLimit?.cyclePercentUsed
+                        )
+                    } else {
+                        ChartEmptyState(message: l10n.t(.emptyIncludedUsage))
                     }
                 }
 

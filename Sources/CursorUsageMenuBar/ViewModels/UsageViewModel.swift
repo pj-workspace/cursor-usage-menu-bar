@@ -10,6 +10,8 @@ final class UsageViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var hasToken: Bool
     @Published var selectedTab: DashboardTab = .usage
+    /// nil = 整个账单周期；否则为某天的 startOfDay
+    @Published var selectedDay: Date? = nil
 
     @Published private(set) var isLoadingUsageEventsPage = false
     @Published private(set) var isLoadingCharts = false
@@ -52,18 +54,36 @@ final class UsageViewModel: ObservableObject {
     func menuBarTitle(language: ResolvedLanguage) -> String {
         if !hasToken { return L10n.string(.menuNotConfigured, language: language) }
         if isInitialLoading, summary == nil { return "…" }
-        if let percent = dashboard.usageLimit?.cyclePercentUsed
+
+        let cycle = dashboard.usageLimit?.cyclePercentUsed
             ?? summary?.billingPlan?.totalPercentUsed
-            ?? dashboard.periodUsage?.planUsage?.totalPercentUsed {
-            return "\(Int(percent.rounded()))%"
+            ?? dashboard.periodUsage?.planUsage?.totalPercentUsed
+        let today = dashboard.todayStats.dailyPercent
+
+        if let cycle, let today, today > 0 {
+            return "\(formatMenuPercent(cycle))% · \(formatMenuPercent(today))%"
         }
-        if let todayPercent = dashboard.todayStats.dailyPercent {
-            return UsageAnalytics.formatPercent(todayPercent)
+        if let cycle {
+            return "\(formatMenuPercent(cycle))%"
+        }
+        if let today {
+            return "\(formatMenuPercent(today))%"
         }
         if let remaining = summary?.planRemaining {
             return formatCount(remaining)
         }
         return "—"
+    }
+
+    /// 菜单栏紧凑百分比：整数不带小数，小数值保留 1 位
+    private func formatMenuPercent(_ value: Double) -> String {
+        if value >= 10 || value.rounded() == value {
+            return String(format: "%.0f", value.rounded())
+        }
+        if value >= 1 {
+            return String(format: "%.1f", value)
+        }
+        return String(format: "%.2f", value)
     }
 
     var menuBarSymbolName: String {
@@ -105,6 +125,7 @@ final class UsageViewModel: ObservableObject {
             try KeychainService.deleteToken()
             hasToken = false
             dashboard = .empty
+            selectedDay = nil
             lastUpdated = nil
             errorMessage = nil
             metricsFingerprint = nil
@@ -188,6 +209,93 @@ final class UsageViewModel: ObservableObject {
 
     func dismissChangeBanner() {
         changeBanner = nil
+    }
+
+    func clearDayFilter() {
+        selectedDay = nil
+    }
+
+    func selectDay(_ date: Date) {
+        selectedDay = Calendar.current.startOfDay(for: date)
+    }
+
+    /// 本周期内有数据的日期（新→旧），供日筛选器使用
+    var availableDays: [Date] {
+        let calendar = Calendar.current
+        let fromCharts = dashboard.dailySpend.map { calendar.startOfDay(for: $0.date) }
+        let fromShare = dashboard.dailyModelShare.map { calendar.startOfDay(for: $0.date) }
+        let fromEvents = (cachedUsageEvents ?? dashboard.events).compactMap { event -> Date? in
+            guard let date = event.eventDate else { return nil }
+            return calendar.startOfDay(for: date)
+        }
+        return Array(Set(fromCharts + fromShare + fromEvents)).sorted(by: >)
+    }
+
+    var isDayFilterActive: Bool { selectedDay != nil }
+
+    /// 当前筛选下的事件（周期全量 or 单日）
+    var filteredUsageEvents: [UsageEvent] {
+        let events = cachedUsageEvents ?? dashboard.events
+        guard let selectedDay else { return events }
+        let calendar = Calendar.current
+        return events.filter { event in
+            guard let date = event.eventDate else { return false }
+            return calendar.isDate(date, inSameDayAs: selectedDay)
+        }
+    }
+
+    /// 日筛选时的当日统计；未筛选时用「今天」
+    var displayedDayStats: TodayUsageStats {
+        if let selectedDay {
+            return UsageAnalytics.dayStats(
+                from: cachedUsageEvents ?? dashboard.events,
+                day: selectedDay,
+                billing: dashboard.usageLimit
+            )
+        }
+        return dashboard.todayStats
+    }
+
+    /// 饼图用：选中日，否则优先今天，再退回最近有数据的一天
+    var displayedModelShareDay: DailyModelShareDay? {
+        let calendar = Calendar.current
+        let target = selectedDay ?? calendar.startOfDay(for: Date())
+        if let match = dashboard.dailyModelShare.first(where: { calendar.isDate($0.date, inSameDayAs: target) }) {
+            return match
+        }
+        if selectedDay != nil {
+            let events = filteredUsageEvents
+            return UsageAnalytics.dailyModelShare(from: events, topLimit: 8).first
+        }
+        return dashboard.dailyModelShare.last
+    }
+
+    var displayedIncludedUsage: IncludedUsageSummary? {
+        let autoModels = dashboard.periodUsage?.autoBucketModels
+        if selectedDay != nil {
+            return UsageAnalytics.includedUsage(
+                fromEvents: filteredUsageEvents,
+                billing: dashboard.usageLimit,
+                autoBucketModels: autoModels
+            )
+        }
+        return dashboard.includedUsage
+    }
+
+    var displayedModelBreakdown: [ModelSpendSlice] {
+        if selectedDay != nil {
+            return UsageAnalytics.modelBreakdown(from: nil, events: filteredUsageEvents)
+        }
+        return dashboard.modelBreakdown
+    }
+
+    func formattedSelectedDayLabel(language: ResolvedLanguage) -> String {
+        guard let selectedDay else {
+            return L10n.string(.dayFilterAll, language: language)
+        }
+        return selectedDay.formatted(
+            .dateTime.year().month().day().locale(language.locale)
+        )
     }
 
     private func syncFromServer(initialLoad: Bool) async {
@@ -409,12 +517,10 @@ final class UsageViewModel: ObservableObject {
         return store.events
     }
 
-    /// 实际使用过的模型（仅来自全量事件，不含未使用的配置项）
+    /// 实际使用过的模型（仅来自当前筛选范围内的事件）
     var availableUsageEventModels: [String] {
-        guard let events = cachedUsageEvents else {
-            return Array(Set(dashboard.events.map(\.simplifiedModel))).sorted()
-        }
-        return Array(Set(events.map(\.simplifiedModel))).sorted()
+        let models = filteredUsageEvents.compactMap(\.model)
+        return Array(Set(models.filter { !$0.isEmpty })).sorted()
     }
 
     private func formatDate(_ isoString: String) -> String {

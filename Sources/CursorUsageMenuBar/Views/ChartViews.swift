@@ -369,13 +369,13 @@ struct ModelSpendChart: View {
     @EnvironmentObject private var l10n: LocalizationManager
     let data: [ModelSpendSlice]
 
-    private let palette: [Color] = [.blue, .purple, .orange, .green, .pink, .teal, .gray]
+    private let palette: [Color] = [.blue, .purple, .orange, .green, .pink, .teal, .indigo, .gray]
 
     var body: some View {
         if data.isEmpty {
             ChartEmptyState(message: l10n.t(.emptyModelDistribution))
         } else {
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 Chart(Array(data.enumerated()), id: \.element.id) { index, slice in
                     SectorMark(
                         angle: .value("花费", max(slice.dollars, 0.01)),
@@ -387,19 +387,195 @@ struct ModelSpendChart: View {
                 }
                 .frame(width: 120, height: 120)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(Array(data.prefix(5).enumerated()), id: \.element.id) { index, slice in
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(palette[index % palette.count])
-                                .frame(width: 8, height: 8)
-                            Text(slice.model)
-                                .font(.caption2)
-                                .lineLimit(1)
-                            Spacer()
-                            Text("$\(slice.dollars, specifier: "%.2f")")
-                                .font(.caption2.weight(.medium))
-                                .monospacedDigit()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(data.enumerated()), id: \.element.id) { index, slice in
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(palette[index % palette.count])
+                                    .frame(width: 8, height: 8)
+                                Text(slice.model)
+                                    .font(.caption2)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 4)
+                                Text("$\(slice.dollars, specifier: "%.2f")")
+                                    .font(.caption2.weight(.medium))
+                                    .monospacedDigit()
+                            }
+                        }
+                    }
+                }
+                .frame(maxHeight: 180)
+            }
+        }
+    }
+}
+
+struct IncludedUsageTable: View {
+    @EnvironmentObject private var l10n: LocalizationManager
+    let summary: IncludedUsageSummary
+    let billingPeriod: String?
+    var todayUsagePercent: Double? = nil
+    var cycleUsagePercent: Double? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                if let billingPeriod {
+                    Text(billingPeriod)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                if let cycleUsagePercent {
+                    Text(l10n.format(.cycleUsagePercentShort, UsageAnalytics.formatPercent(cycleUsagePercent)))
+                        .font(.caption.weight(.semibold))
+                        .monospacedDigit()
+                }
+            }
+
+            if let todayUsagePercent {
+                HStack {
+                    Text(l10n.t(.todayBillingPercent))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(UsageAnalytics.formatPercent(todayUsagePercent))
+                        .font(.title3.weight(.bold))
+                        .monospacedDigit()
+                        .foregroundStyle(todayUsagePercent >= 10 ? .orange : .green)
+                }
+                .padding(.vertical, 4)
+            }
+
+            Text(l10n.t(.includedUsageCostHint))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                Text(l10n.t(.columnItem))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(l10n.t(.columnTokens))
+                    .frame(width: 72, alignment: .trailing)
+                Text(l10n.t(.columnUsage))
+                    .frame(width: 52, alignment: .trailing)
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+
+            ForEach(summary.groups) { group in
+                Divider()
+                groupHeader(group)
+                ForEach(group.rows) { row in
+                    modelRow(row)
+                }
+            }
+        }
+        .padding(10)
+        .background(Color.secondary.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func groupHeader(_ group: IncludedUsageGroup) -> some View {
+        HStack(spacing: 8) {
+            Text(group.pool.label(language: l10n.resolved))
+                .font(.caption.weight(.bold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(UsageEvent.formatTokenCount(group.totalTokens, language: l10n.resolved))
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
+                .frame(width: 72, alignment: .trailing)
+            Text(UsageAnalytics.formatPercent(group.usagePercent))
+                .font(.caption.weight(.bold))
+                .monospacedDigit()
+                .frame(width: 52, alignment: .trailing)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func modelRow(_ row: IncludedUsageRow) -> some View {
+        HStack(spacing: 8) {
+            Text(row.model)
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .padding(.leading, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(UsageEvent.formatTokenCount(row.tokens, language: l10n.resolved))
+                .font(.caption)
+                .monospacedDigit()
+                .frame(width: 72, alignment: .trailing)
+            Text(UsageAnalytics.formatPercent(row.usagePercent))
+                .font(.caption)
+                .monospacedDigit()
+                .frame(width: 52, alignment: .trailing)
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+struct DailyModelUsageChart: View {
+    @EnvironmentObject private var l10n: LocalizationManager
+    let day: DailyModelShareDay?
+
+    private let palette: [Color] = [.blue, .purple, .orange, .green, .pink, .teal, .indigo, .mint, .gray]
+
+    private var slices: [DailyModelShareSlice] {
+        day?.slices ?? []
+    }
+
+    var body: some View {
+        if slices.isEmpty {
+            ChartEmptyState(message: l10n.t(.emptyDailyModelShare))
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                if let day {
+                    Text(day.date.formatted(.dateTime.year().month().day().weekday(.wide).locale(l10n.resolved.locale)))
+                        .font(.caption.weight(.semibold))
+                    Text(l10n.t(.dailyModelShareHint))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack(alignment: .top, spacing: 12) {
+                    Chart(Array(slices.enumerated()), id: \.element.id) { index, slice in
+                        SectorMark(
+                            angle: .value("Share", max(slice.percent, 0.01)),
+                            innerRadius: .ratio(0.52),
+                            angularInset: 1.2
+                        )
+                        .foregroundStyle(palette[index % palette.count])
+                        .cornerRadius(2)
+                    }
+                    .frame(width: 128, height: 128)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(slices.enumerated()), id: \.element.id) { index, slice in
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Circle()
+                                    .fill(palette[index % palette.count])
+                                    .frame(width: 8, height: 8)
+                                Text(slice.model)
+                                    .font(.caption2)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 4)
+                                Text(UsageAnalytics.formatPercent(slice.percent))
+                                    .font(.caption2.weight(.semibold))
+                                    .monospacedDigit()
+                            }
+                        }
+                        if let day {
+                            Divider().padding(.vertical, 2)
+                            Text(
+                                "\(l10n.t(.token)) \(UsageEvent.formatTokenCount(day.totalTokens, language: l10n.resolved))"
+                            )
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
                         }
                     }
                 }
@@ -631,11 +807,17 @@ struct ModelTokenUsageTable: View {
 
             ForEach(summary.rows) { row in
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack {
+                    HStack(alignment: .firstTextBaseline) {
                         Text(row.model)
                             .font(.caption.weight(.semibold))
-                            .lineLimit(1)
+                            .lineLimit(2)
                         Spacer()
+                        if let usagePercent = row.usagePercent {
+                            Text(UsageAnalytics.formatPercent(usagePercent))
+                                .font(.caption2.weight(.semibold))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
                         Text(String(format: "$%.2f", row.totalCents / 100))
                             .font(.caption.weight(.medium))
                             .monospacedDigit()

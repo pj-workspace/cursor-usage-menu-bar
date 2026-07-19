@@ -239,10 +239,35 @@ struct UsageEvent: Codable, Sendable, Identifiable {
     }
 
     static func formatTokenCount(_ count: Int?) -> String {
+        formatTokenCount(count, language: LocalizationManager.resolvedLanguage())
+    }
+
+    static func formatTokenCount(_ count: Int?, language: ResolvedLanguage) -> String {
         guard let count else { return "—" }
-        if count >= 1_000_000 { return String(format: "%.2fM", Double(count) / 1_000_000) }
-        if count >= 1_000 { return String(format: "%.1fK", Double(count) / 1_000) }
-        return "\(count)"
+        switch language {
+        case .chinese:
+            if count >= 100_000_000 {
+                let value = Double(count) / 100_000_000
+                if value >= 10 {
+                    return String(format: "%.1f亿", value)
+                }
+                return String(format: "%.2f亿", value)
+                    .replacingOccurrences(of: ".00亿", with: "亿")
+                    .replacingOccurrences(of: "0亿", with: "亿")
+            }
+            if count >= 10_000 {
+                return String(format: "%.1f万", Double(count) / 10_000)
+            }
+            return "\(count)"
+        case .english:
+            if count >= 1_000_000 { return String(format: "%.2fM", Double(count) / 1_000_000) }
+            if count >= 1_000 { return String(format: "%.1fK", Double(count) / 1_000) }
+            return "\(count)"
+        }
+    }
+
+    static func formatTokenCount(_ count: Int) -> String {
+        formatTokenCount(count, language: LocalizationManager.resolvedLanguage())
     }
 
     var simplifiedModel: String {
@@ -410,14 +435,93 @@ struct ModelSpendSlice: Identifiable, Sendable {
 struct ModelTokenUsageRow: Identifiable, Sendable {
     let id: String
     let model: String
+    let rawModel: String
     let inputTokens: Int
     let outputTokens: Int
     let cacheReadTokens: Int
     let cacheWriteTokens: Int
     let totalCents: Double
+    let usagePercent: Double?
 
     var totalTokens: Int {
         inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens
+    }
+}
+
+struct IncludedUsageRow: Identifiable, Sendable {
+    let id: String
+    let model: String
+    let tokens: Int
+    let costCents: Double
+    let usagePercent: Double
+    let pool: ModelPricingCatalog.Pool
+
+    init(model: String, tokens: Int, costCents: Double, usagePercent: Double, pool: ModelPricingCatalog.Pool) {
+        self.model = model
+        self.tokens = tokens
+        self.costCents = costCents
+        self.usagePercent = usagePercent
+        self.pool = pool
+        id = model
+    }
+}
+
+struct IncludedUsageGroup: Identifiable, Sendable {
+    let id: String
+    let pool: ModelPricingCatalog.Pool
+    let rows: [IncludedUsageRow]
+    let totalTokens: Int
+    let totalCostCents: Double
+    let usagePercent: Double
+}
+
+struct IncludedUsageSummary: Sendable {
+    let groups: [IncludedUsageGroup]
+    let billingPercent: Double?
+    let totalUsagePercent: Double
+}
+
+struct DailyModelShareSlice: Identifiable, Sendable {
+    let id: String
+    let model: String
+    let tokens: Int
+    let percent: Double
+
+    init(model: String, tokens: Int, percent: Double) {
+        self.model = model
+        self.tokens = tokens
+        self.percent = percent
+        id = model
+    }
+}
+
+struct DailyModelShareDay: Identifiable, Sendable {
+    let id: String
+    let date: Date
+    let slices: [DailyModelShareSlice]
+    let totalTokens: Int
+
+    init(date: Date, slices: [DailyModelShareSlice], totalTokens: Int) {
+        self.date = date
+        self.slices = slices
+        self.totalTokens = totalTokens
+        id = ISO8601DateFormatter().string(from: date)
+    }
+}
+
+struct DailyModelShareChartPoint: Identifiable, Sendable {
+    let id: String
+    let date: Date
+    let model: String
+    let percent: Double
+    let tokens: Int
+
+    init(date: Date, model: String, percent: Double, tokens: Int) {
+        self.date = date
+        self.model = model
+        self.percent = percent
+        self.tokens = tokens
+        id = "\(ISO8601DateFormatter().string(from: date))-\(model)"
     }
 }
 
@@ -486,6 +590,7 @@ struct DashboardSnapshot: Sendable {
     let dailySpend: [DailySpendPoint]
     let quotaCurves: [QuotaCurvePoint]
     let modelBreakdown: [ModelSpendSlice]
+    let dailyModelShare: [DailyModelShareDay]
     let spendingBreakdown: [SpendingBreakdownItem]
     let todayStats: TodayUsageStats
     let partialErrors: [String]
@@ -507,6 +612,7 @@ struct DashboardSnapshot: Sendable {
         dailySpend: [],
         quotaCurves: [],
         modelBreakdown: [],
+        dailyModelShare: [],
         spendingBreakdown: [],
         todayStats: .empty,
         partialErrors: [],
@@ -521,7 +627,32 @@ struct DashboardSnapshot: Sendable {
     }
 
     var modelTokenUsage: ModelTokenUsageSummary? {
-        UsageAnalytics.modelTokenUsage(from: aggregatedUsage)
+        UsageAnalytics.modelTokenUsage(from: aggregatedUsage, billing: usageLimit)
+    }
+
+    var includedUsage: IncludedUsageSummary? {
+        let plan = summary?.billingPlan
+        let periodPlan = periodUsage?.planUsage
+        return UsageAnalytics.includedUsage(
+            from: aggregatedUsage,
+            billing: usageLimit,
+            autoBucketModels: periodUsage?.autoBucketModels,
+            apiPercentUsed: plan?.apiPercentUsed ?? periodPlan?.apiPercentUsed,
+            autoPercentUsed: plan?.autoPercentUsed ?? periodPlan?.autoPercentUsed
+        )
+    }
+
+    var dailyModelShareChartPoints: [DailyModelShareChartPoint] {
+        dailyModelShare.flatMap { day in
+            day.slices.map { slice in
+                DailyModelShareChartPoint(
+                    date: day.date,
+                    model: slice.model,
+                    percent: slice.percent,
+                    tokens: slice.tokens
+                )
+            }
+        }
     }
 
     /// 统一本周期花费口径：优先 aggregated，其次 spending
@@ -545,6 +676,7 @@ struct DashboardSnapshot: Sendable {
             dailySpend: dailySpend,
             quotaCurves: quotaCurves,
             modelBreakdown: modelBreakdown,
+            dailyModelShare: dailyModelShare,
             spendingBreakdown: spendingBreakdown,
             todayStats: todayStats,
             partialErrors: partialErrors,
@@ -574,6 +706,7 @@ struct DashboardSnapshot: Sendable {
                 period: periodUsage
             ),
             modelBreakdown: UsageAnalytics.modelBreakdown(from: aggregatedUsage, events: allEvents),
+            dailyModelShare: UsageAnalytics.dailyModelShare(from: allEvents),
             spendingBreakdown: spendingBreakdown,
             todayStats: UsageAnalytics.todayStats(from: allEvents, billing: usageLimit),
             partialErrors: partialErrors,
@@ -599,6 +732,7 @@ struct DashboardSnapshot: Sendable {
             dailySpend: dailySpend,
             quotaCurves: quotaCurves,
             modelBreakdown: modelBreakdown,
+            dailyModelShare: dailyModelShare,
             spendingBreakdown: incoming.spendingBreakdown,
             todayStats: todayStats,
             partialErrors: incoming.partialErrors,
@@ -651,6 +785,11 @@ struct DashboardSnapshot: Sendable {
         for slice in modelBreakdown {
             hasher.combine(slice.id)
             hasher.combine(slice.cents)
+        }
+        hasher.combine(dailyModelShare.count)
+        for day in dailyModelShare {
+            hasher.combine(day.id)
+            hasher.combine(day.totalTokens)
         }
         hasher.combine(todayStats.eventCount)
         hasher.combine(todayStats.totalChargedCents)

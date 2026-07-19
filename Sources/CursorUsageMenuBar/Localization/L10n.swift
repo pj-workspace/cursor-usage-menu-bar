@@ -41,6 +41,19 @@ enum L10n {
         case dailyUsagePercent
         case dailySpend
         case modelSpendDistribution
+        case includedUsage
+        case dailyModelShare
+        case columnItem
+        case columnTokens
+        case columnUsage
+        case emptyIncludedUsage
+        case emptyDailyModelShare
+        case dailyModelShareHint
+        case dayFilter
+        case dayFilterAll
+        case dayStats
+        case includedUsageCostHint
+        case cycleUsagePercentShort
         case usageDetails
         case emptyQuotaCurve
         case emptyDailyUsage
@@ -257,6 +270,19 @@ enum L10n {
         .dailyUsagePercent: "Daily usage vs Billing 100%",
         .dailySpend: "Daily spend",
         .modelSpendDistribution: "Spend by model",
+        .includedUsage: "Included Usage",
+        .dailyModelShare: "Daily model share",
+        .columnItem: "Item",
+        .columnTokens: "Tokens",
+        .columnUsage: "Usage",
+        .emptyIncludedUsage: "No included usage data yet",
+        .emptyDailyModelShare: "No daily model share data yet",
+        .dailyModelShareHint: "Pie chart for the selected day (thinking levels kept separate)",
+        .dayFilter: "Day",
+        .dayFilterAll: "Full cycle",
+        .dayStats: "Day stats",
+        .includedUsageCostHint: "Same as Cursor’s site: API group = api%, First-party = auto%. Model % = pool% × (model spend ÷ pool spend). API has no ready-made model%; the website calculates this too.",
+        .cycleUsagePercentShort: "Cycle %@",
         .usageDetails: "Usage details",
         .emptyQuotaCurve: "No quota curve data yet",
         .emptyDailyUsage: "No daily usage data yet",
@@ -454,6 +480,19 @@ enum L10n {
         .dailyUsagePercent: "每日用量占 Billing 100%",
         .dailySpend: "每日花费",
         .modelSpendDistribution: "模型花费分布",
+        .includedUsage: "包含用量",
+        .dailyModelShare: "每日模型占比",
+        .columnItem: "项目",
+        .columnTokens: "Token",
+        .columnUsage: "用量",
+        .emptyIncludedUsage: "暂无包含用量数据",
+        .emptyDailyModelShare: "暂无每日模型占比数据",
+        .dailyModelShareHint: "仅展示所选日期的模型 Token 占比（保留 medium / high 等思考档位）",
+        .dayFilter: "日期",
+        .dayFilterAll: "整个周期",
+        .dayStats: "当日统计",
+        .includedUsageCostHint: "与官网同算法（非爬虫）：API 组合计=api%，第一方=auto%；模型%=池%×(模型花费÷池花费)。接口不返回现成模型%，官网也是前端算的。",
+        .cycleUsagePercentShort: "本周期 %@",
         .usageDetails: "用量明细",
         .emptyQuotaCurve: "暂无额度曲线数据",
         .emptyDailyUsage: "暂无每日用量数据",
