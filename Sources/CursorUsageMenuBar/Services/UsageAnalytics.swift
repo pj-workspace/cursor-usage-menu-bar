@@ -799,8 +799,8 @@ enum UsageAnalytics {
 
     static func formatPercent(_ value: Double?) -> String {
         guard let value else { return "—" }
-        // 对齐 Cursor 新版 Usage 表：固定一位小数（含 0.0%）
-        return String(format: "%.1f%%", value)
+        // 固定两位小数（如 0.02%、10.20%、98.90%）
+        return String(format: "%.2f%%", value)
     }
 
     /// 按日累计、按模型堆叠的花费序列（对齐 Cursor「Your Usage」累计面积图）

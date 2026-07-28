@@ -85,15 +85,9 @@ final class UsageViewModel: ObservableObject {
         return "—"
     }
 
-    /// 菜单栏紧凑百分比：整数不带小数，小数值保留 1 位
+    /// 菜单栏百分比：与仪表盘一致，固定两位小数
     private func formatMenuPercent(_ value: Double) -> String {
-        if value >= 10 || value.rounded() == value {
-            return String(format: "%.0f", value.rounded())
-        }
-        if value >= 1 {
-            return String(format: "%.1f", value)
-        }
-        return String(format: "%.2f", value)
+        String(format: "%.2f", value)
     }
 
     var menuBarSymbolName: String {
