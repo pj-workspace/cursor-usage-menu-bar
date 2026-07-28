@@ -47,6 +47,16 @@ final class UsageViewModel: ObservableObject {
     var summary: UsageSummary? { dashboard.summary }
     var todayStats: TodayUsageStats { dashboard.todayStats }
 
+    /// API 池实际已用（美分）= apiPercent × API 额度；勿用 period.includedSpend（常是额度上限）
+    var apiPoolUsedCents: Double? {
+        dashboard.usagePools.first(where: { $0.id == "api" })?.usedCents
+    }
+
+    var apiPoolLimitCents: Double? {
+        dashboard.usagePools.first(where: { $0.id == "api" })?.limitCents
+            ?? summary?.planLimit
+    }
+
     var menuBarTitle: String {
         menuBarTitle(language: LocalizationManager.shared.resolved)
     }

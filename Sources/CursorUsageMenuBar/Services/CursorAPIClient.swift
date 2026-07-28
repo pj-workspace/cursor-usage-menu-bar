@@ -77,6 +77,8 @@ struct CursorAPIClient: Sendable {
             quotaCurves: [],
             modelBreakdown: modelBreakdown,
             dailyModelShare: [],
+            cumulativeModelSpend: [],
+            spendSummary: UsageAnalytics.spendSummary(from: periodUsage, aggregated: aggregatedUsage),
             spendingBreakdown: UsageAnalytics.spendingBreakdown(from: periodUsage, summary: summary),
             todayStats: .empty,
             partialErrors: partialErrors,
