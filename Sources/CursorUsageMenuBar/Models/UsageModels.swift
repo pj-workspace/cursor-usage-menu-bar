@@ -525,6 +525,34 @@ struct DailyModelShareChartPoint: Identifiable, Sendable {
     }
 }
 
+struct CumulativeModelSpendPoint: Identifiable, Sendable {
+    let id: String
+    let date: Date
+    let model: String
+    let cumulativeCents: Double
+
+    init(date: Date, model: String, cumulativeCents: Double) {
+        self.date = date
+        self.model = model
+        self.cumulativeCents = cumulativeCents
+        id = "\(ISO8601DateFormatter().string(from: date))-\(model)"
+    }
+
+    var cumulativeDollars: Double { cumulativeCents / 100 }
+}
+
+struct SpendSummaryMetrics: Sendable {
+    let totalSpendCents: Double?
+    let includedSpendCents: Double?
+    let onDemandSpendCents: Double?
+
+    static let empty = SpendSummaryMetrics(
+        totalSpendCents: nil,
+        includedSpendCents: nil,
+        onDemandSpendCents: nil
+    )
+}
+
 struct ModelTokenUsageSummary: Sendable {
     let rows: [ModelTokenUsageRow]
     let totalInputTokens: Int
@@ -591,6 +619,8 @@ struct DashboardSnapshot: Sendable {
     let quotaCurves: [QuotaCurvePoint]
     let modelBreakdown: [ModelSpendSlice]
     let dailyModelShare: [DailyModelShareDay]
+    let cumulativeModelSpend: [CumulativeModelSpendPoint]
+    let spendSummary: SpendSummaryMetrics
     let spendingBreakdown: [SpendingBreakdownItem]
     let todayStats: TodayUsageStats
     let partialErrors: [String]
@@ -613,6 +643,8 @@ struct DashboardSnapshot: Sendable {
         quotaCurves: [],
         modelBreakdown: [],
         dailyModelShare: [],
+        cumulativeModelSpend: [],
+        spendSummary: .empty,
         spendingBreakdown: [],
         todayStats: .empty,
         partialErrors: [],
@@ -677,6 +709,8 @@ struct DashboardSnapshot: Sendable {
             quotaCurves: quotaCurves,
             modelBreakdown: modelBreakdown,
             dailyModelShare: dailyModelShare,
+            cumulativeModelSpend: cumulativeModelSpend,
+            spendSummary: spendSummary,
             spendingBreakdown: spendingBreakdown,
             todayStats: todayStats,
             partialErrors: partialErrors,
@@ -707,6 +741,8 @@ struct DashboardSnapshot: Sendable {
             ),
             modelBreakdown: UsageAnalytics.modelBreakdown(from: aggregatedUsage, events: allEvents),
             dailyModelShare: UsageAnalytics.dailyModelShare(from: allEvents),
+            cumulativeModelSpend: UsageAnalytics.cumulativeModelSpend(from: allEvents),
+            spendSummary: UsageAnalytics.spendSummary(from: periodUsage, aggregated: aggregatedUsage),
             spendingBreakdown: spendingBreakdown,
             todayStats: UsageAnalytics.todayStats(from: allEvents, billing: usageLimit),
             partialErrors: partialErrors,
@@ -733,6 +769,8 @@ struct DashboardSnapshot: Sendable {
             quotaCurves: quotaCurves,
             modelBreakdown: modelBreakdown,
             dailyModelShare: dailyModelShare,
+            cumulativeModelSpend: cumulativeModelSpend,
+            spendSummary: incoming.spendSummary,
             spendingBreakdown: incoming.spendingBreakdown,
             todayStats: todayStats,
             partialErrors: incoming.partialErrors,
@@ -790,6 +828,11 @@ struct DashboardSnapshot: Sendable {
         for day in dailyModelShare {
             hasher.combine(day.id)
             hasher.combine(day.totalTokens)
+        }
+        hasher.combine(cumulativeModelSpend.count)
+        if let last = cumulativeModelSpend.last {
+            hasher.combine(last.id)
+            hasher.combine(last.cumulativeCents)
         }
         hasher.combine(todayStats.eventCount)
         hasher.combine(todayStats.totalChargedCents)

@@ -54,15 +54,26 @@ enum UsageAnalytics {
         ]
     }
 
-    /// Billing API 已用 = apiPercentUsed × 包含额度（plan.limit）
+    /// API 已用：优先 apiPercentUsed × API 额度（与仪表盘 % 一致）。
+    /// 勿盲信 period.apiSpend / includedSpend——后者常等于额度上限（如 $70），不是已用。
     static func resolveAPIUsedCents(
         percent: Double?,
         limitCents: Double?,
         explicitSpend: Double?
     ) -> Double? {
-        if let explicitSpend { return explicitSpend }
-        guard let percent, let limitCents else { return nil }
-        return limitCents * (percent / 100)
+        if let percent, let limitCents {
+            let fromPercent = limitCents * (percent / 100)
+            // explicitSpend 若接近额度本身且与百分比明显不符，视为脏数据，忽略
+            if let explicitSpend, limitCents > 0 {
+                let looksLikeLimit = abs(explicitSpend - limitCents) / limitCents < 0.02
+                let disagreesWithPercent = percent < 95 && abs(explicitSpend - fromPercent) / limitCents > 0.05
+                if looksLikeLimit && disagreesWithPercent {
+                    return fromPercent
+                }
+            }
+            return fromPercent
+        }
+        return explicitSpend
     }
 
     /// Billing 总口径：totalPercentUsed + 全周期花费
@@ -788,13 +799,85 @@ enum UsageAnalytics {
 
     static func formatPercent(_ value: Double?) -> String {
         guard let value else { return "—" }
-        if value < 1 {
-            return String(format: "%.2f%%", value)
+        // 对齐 Cursor 新版 Usage 表：固定一位小数（含 0.0%）
+        return String(format: "%.1f%%", value)
+    }
+
+    /// 按日累计、按模型堆叠的花费序列（对齐 Cursor「Your Usage」累计面积图）
+    static func cumulativeModelSpend(
+        from events: [UsageEvent],
+        topLimit: Int = 9
+    ) -> [CumulativeModelSpendPoint] {
+        let calendar = Calendar.current
+        let language = LocalizationManager.resolvedLanguage()
+        let othersLabel = L10n.string(.othersModel, language: language)
+
+        var dailyModelCents: [Date: [String: Double]] = [:]
+        var modelTotals: [String: Double] = [:]
+
+        for event in events {
+            guard let date = event.eventDate else { continue }
+            let day = calendar.startOfDay(for: date)
+            let cents = event.chargedCents ?? 0
+            guard cents > 0 else { continue }
+            let model = displayModelName(event.model ?? L10n.string(.unknownModel, language: language))
+            dailyModelCents[day, default: [:]][model, default: 0] += cents
+            modelTotals[model, default: 0] += cents
         }
-        if value < 10 {
-            return String(format: "%.1f%%", value)
+
+        guard !dailyModelCents.isEmpty else { return [] }
+
+        let ranked = modelTotals.sorted { $0.value > $1.value }
+        let topModels = ranked.prefix(topLimit).map(\.key)
+        let topSet = Set(topModels)
+        let hasOthers = ranked.count > topLimit
+        let seriesModels = topModels + (hasOthers ? [othersLabel] : [])
+
+        let sortedDays = dailyModelCents.keys.sorted()
+        var cumulative: [String: Double] = Dictionary(uniqueKeysWithValues: seriesModels.map { ($0, 0.0) })
+        var points: [CumulativeModelSpendPoint] = []
+
+        for day in sortedDays {
+            let dayMap = dailyModelCents[day] ?? [:]
+            var otherDay = 0.0
+            for (model, cents) in dayMap {
+                if topSet.contains(model) {
+                    cumulative[model, default: 0] += cents
+                } else {
+                    otherDay += cents
+                }
+            }
+            if hasOthers {
+                cumulative[othersLabel, default: 0] += otherDay
+            }
+
+            for model in seriesModels {
+                points.append(
+                    CumulativeModelSpendPoint(
+                        date: day,
+                        model: model,
+                        cumulativeCents: cumulative[model] ?? 0
+                    )
+                )
+            }
         }
-        return String(format: "%.0f%%", value.rounded())
+
+        return points
+    }
+
+    static func spendSummary(
+        from period: PeriodUsageResponse?,
+        aggregated: AggregatedUsageResponse?
+    ) -> SpendSummaryMetrics {
+        let plan = period?.planUsage
+        let total = aggregated?.totalCostCents ?? plan?.totalSpend
+        let included = plan?.includedSpend ?? total
+        let onDemand = period?.onDemandUsage?.used ?? 0
+        return SpendSummaryMetrics(
+            totalSpendCents: total,
+            includedSpendCents: included,
+            onDemandSpendCents: onDemand
+        )
     }
 
     static func formatBillingPeriod(start: Date?, end: Date?, language: ResolvedLanguage) -> String? {

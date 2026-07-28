@@ -584,6 +584,182 @@ struct DailyModelUsageChart: View {
     }
 }
 
+struct SpendSummaryCards: View {
+    @EnvironmentObject private var l10n: LocalizationManager
+    let summary: SpendSummaryMetrics
+
+    var body: some View {
+        HStack(spacing: 8) {
+            spendCard(l10n.t(.totalSpend), summary.totalSpendCents)
+            spendCard(l10n.t(.includedSpend), summary.includedSpendCents)
+            spendCard(l10n.t(.onDemandSpend), summary.onDemandSpendCents ?? 0)
+        }
+    }
+
+    private func spendCard(_ title: String, _ cents: Double?) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(format(cents))
+                .font(.headline.weight(.bold))
+                .monospacedDigit()
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.secondary.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func format(_ cents: Double?) -> String {
+        guard let cents else { return "—" }
+        return String(format: "$%.2f", cents / 100)
+    }
+}
+
+/// 对齐 Cursor 新版 Your Usage：按模型累计花费的堆叠面积图
+struct CumulativeUsageChart: View {
+    @EnvironmentObject private var l10n: LocalizationManager
+    let points: [CumulativeModelSpendPoint]
+
+    private let palette: [Color] = [
+        Color(red: 0.15, green: 0.42, blue: 0.28),
+        Color(red: 0.35, green: 0.55, blue: 0.85),
+        Color(red: 0.90, green: 0.55, blue: 0.50),
+        Color(red: 0.55, green: 0.75, blue: 0.90),
+        Color(red: 0.85, green: 0.78, blue: 0.55),
+        Color(red: 0.30, green: 0.65, blue: 0.60),
+        Color(red: 0.55, green: 0.40, blue: 0.75),
+        Color(red: 0.70, green: 0.25, blue: 0.30),
+        Color(red: 0.45, green: 0.70, blue: 0.45),
+        Color.gray,
+    ]
+
+    private var modelOrder: [String] {
+        let totals = Dictionary(grouping: points, by: \.model)
+            .mapValues { pts in pts.map(\.cumulativeCents).max() ?? 0 }
+        return totals.sorted { $0.value > $1.value }.map(\.key)
+    }
+
+    private var maxDollars: Double {
+        let byDay = Dictionary(grouping: points, by: \.date)
+            .mapValues { pts in pts.map(\.cumulativeDollars).reduce(0, +) }
+        let peak = byDay.values.max() ?? 0
+        return max(peak * 1.08, 1)
+    }
+
+    private var today: Date {
+        Calendar.current.startOfDay(for: Date())
+    }
+
+    private var showsToday: Bool {
+        points.contains { Calendar.current.isDate($0.date, inSameDayAs: today) }
+    }
+
+    var body: some View {
+        if points.isEmpty {
+            ChartEmptyState(message: l10n.t(.emptyCumulativeUsage))
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(l10n.t(.yourUsage))
+                            .font(.subheadline.weight(.semibold))
+                        Text(l10n.t(.yourUsageSubtitle))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Text(l10n.t(.groupByModelSpend))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.1))
+                        .clipShape(Capsule())
+                }
+
+                Chart {
+                    ForEach(points) { point in
+                        AreaMark(
+                            x: .value("Date", point.date, unit: .day),
+                            y: .value("Spend", point.cumulativeDollars)
+                        )
+                        .foregroundStyle(by: .value("Model", point.model))
+                        .interpolationMethod(.monotone)
+                    }
+
+                    if showsToday {
+                        RuleMark(x: .value("Today", today))
+                            .foregroundStyle(Color.secondary.opacity(0.55))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .annotation(position: .top, alignment: .center) {
+                                Text(l10n.t(.todayMarker))
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(Color.secondary.opacity(0.12), in: Capsule())
+                            }
+                    }
+                }
+                .chartForegroundStyleScale(
+                    domain: modelOrder,
+                    range: modelOrder.enumerated().map { index, _ in palette[index % palette.count] }
+                )
+                .chartYScale(domain: 0 ... maxDollars)
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .day, count: max(1, uniqueDayCount / 5))) { _ in
+                        AxisGridLine()
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisGridLine()
+                        AxisValueLabel {
+                            if let amount = value.as(Double.self) {
+                                Text("$\(amount, specifier: amount >= 100 ? "%.0f" : "%.0f")")
+                                    .font(.caption2)
+                            }
+                        }
+                    }
+                }
+                .chartYAxisLabel(l10n.t(.cumulativeSpendAxis))
+                .chartLegend(.hidden)
+                .frame(height: 220)
+
+                legend
+            }
+        }
+    }
+
+    private var uniqueDayCount: Int {
+        Set(points.map { Calendar.current.startOfDay(for: $0.date) }).count
+    }
+
+    private var legend: some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 130), spacing: 6)],
+            alignment: .leading,
+            spacing: 6
+        ) {
+            ForEach(Array(modelOrder.enumerated()), id: \.element) { index, model in
+                HStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(palette[index % palette.count])
+                        .frame(width: 10, height: 10)
+                    Text(model)
+                        .font(.caption2)
+                        .lineLimit(1)
+                }
+            }
+        }
+    }
+}
+
 struct UsagePoolsView: View {
     let pools: [UsagePoolMetrics]
 

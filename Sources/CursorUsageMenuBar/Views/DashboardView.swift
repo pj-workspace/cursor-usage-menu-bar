@@ -147,6 +147,23 @@ struct DashboardView: View {
                 }
 
                 if !viewModel.isDayFilterActive {
+                    PanelCard(title: l10n.t(.yourUsage)) {
+                        if viewModel.dashboard.cumulativeModelSpend.isEmpty {
+                            if viewModel.isLoadingCharts {
+                                ChartLoadingState(message: l10n.t(.loadingChartData))
+                            } else if let error = viewModel.chartLoadError {
+                                ChartErrorState(message: error)
+                            } else {
+                                ChartEmptyState(message: l10n.t(.emptyCumulativeUsage))
+                            }
+                        } else {
+                            VStack(alignment: .leading, spacing: 12) {
+                                SpendSummaryCards(summary: viewModel.dashboard.spendSummary)
+                                CumulativeUsageChart(points: viewModel.dashboard.cumulativeModelSpend)
+                            }
+                        }
+                    }
+
                     PanelCard(title: l10n.t(.cycleUsage)) {
                         VStack(alignment: .leading, spacing: 12) {
                             if let limit = viewModel.dashboard.usageLimit {
@@ -302,12 +319,29 @@ struct DashboardView: View {
                             )
                             PanelRow(
                                 label: l10n.t(.apiIncludedUsed),
-                                value: viewModel.formattedCurrencyFromCents(plan.includedSpend)
+                                value: viewModel.formattedCurrencyFromCents(viewModel.apiPoolUsedCents)
                             )
                             PanelRow(
                                 label: l10n.t(.autoBonusSpend),
                                 value: viewModel.formattedCurrencyFromCents(plan.bonusSpend)
                             )
+                        }
+                    }
+                }
+
+                PanelCard(title: l10n.t(.yourUsage)) {
+                    if viewModel.dashboard.cumulativeModelSpend.isEmpty {
+                        if viewModel.isLoadingCharts {
+                            ChartLoadingState(message: l10n.t(.loadingChartData))
+                        } else if let error = viewModel.chartLoadError {
+                            ChartErrorState(message: error)
+                        } else {
+                            ChartEmptyState(message: l10n.t(.emptyCumulativeUsage))
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SpendSummaryCards(summary: viewModel.dashboard.spendSummary)
+                            CumulativeUsageChart(points: viewModel.dashboard.cumulativeModelSpend)
                         }
                     }
                 }
@@ -404,7 +438,7 @@ struct DashboardView: View {
                             if let plan = period?.planUsage {
                                 PanelRow(
                                     label: l10n.t(.apiIncludedUsed),
-                                    value: viewModel.formattedCurrencyFromCents(plan.includedSpend)
+                                    value: viewModel.formattedCurrencyFromCents(viewModel.apiPoolUsedCents)
                                 )
                                 PanelRow(
                                     label: l10n.t(.autoBonusSpend),

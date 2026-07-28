@@ -72,6 +72,14 @@ enum L10n {
         case cumulative
         case spendAmount
         case usedSpend
+        case yourUsage
+        case yourUsageSubtitle
+        case groupByModelSpend
+        case cumulativeSpendAxis
+        case todayMarker
+        case emptyCumulativeUsage
+        case includedSpend
+        case onDemandSpend
 
         // Spending tab
         case cycleSpending
@@ -301,6 +309,14 @@ enum L10n {
         .cumulative: "Cumulative %@",
         .spendAmount: "Spend $%.2f",
         .usedSpend: "Used $%.2f",
+        .yourUsage: "Your Usage",
+        .yourUsageSubtitle: "Cumulative spend per day across this billing period",
+        .groupByModelSpend: "Model · Spend",
+        .cumulativeSpendAxis: "Cumulative Spend ($)",
+        .todayMarker: "Today",
+        .emptyCumulativeUsage: "No cumulative usage data yet",
+        .includedSpend: "Included",
+        .onDemandSpend: "On-demand",
 
         .cycleSpending: "Cycle spending",
         .spendShare: "Spend breakdown",
@@ -511,6 +527,14 @@ enum L10n {
         .cumulative: "累计 %@",
         .spendAmount: "花费 $%.2f",
         .usedSpend: "已用 $%.2f",
+        .yourUsage: "Your Usage",
+        .yourUsageSubtitle: "本账单周期内按日累计花费（按模型）",
+        .groupByModelSpend: "模型 · 花费",
+        .cumulativeSpendAxis: "累计花费 ($)",
+        .todayMarker: "今天",
+        .emptyCumulativeUsage: "暂无累计用量图数据",
+        .includedSpend: "包含用量",
+        .onDemandSpend: "按需用量",
 
         .cycleSpending: "本周期花费 (Spending)",
         .spendShare: "花费占比",
