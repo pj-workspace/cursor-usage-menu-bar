@@ -60,7 +60,11 @@ struct CursorAPIClient: Sendable {
             period: periodUsage,
             aggregated: aggregatedUsage
         )
-        let usagePools = UsageAnalytics.resolveUsagePools(summary: summary, period: periodUsage)
+        let usagePools = UsageAnalytics.resolveUsagePools(
+            summary: summary,
+            period: periodUsage,
+            aggregated: aggregatedUsage
+        )
         let modelBreakdown = UsageAnalytics.modelBreakdown(from: aggregatedUsage, events: [])
 
         return DashboardSnapshot(
@@ -79,7 +83,11 @@ struct CursorAPIClient: Sendable {
             dailyModelShare: [],
             cumulativeModelSpend: [],
             spendSummary: UsageAnalytics.spendSummary(from: periodUsage, aggregated: aggregatedUsage),
-            spendingBreakdown: UsageAnalytics.spendingBreakdown(from: periodUsage, summary: summary),
+            spendingBreakdown: UsageAnalytics.spendingBreakdown(
+                from: periodUsage,
+                summary: summary,
+                aggregated: aggregatedUsage
+            ),
             todayStats: .empty,
             partialErrors: partialErrors,
             billingCycleStartMs: startMsString,

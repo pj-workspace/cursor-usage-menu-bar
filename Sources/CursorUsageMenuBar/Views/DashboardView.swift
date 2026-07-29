@@ -198,9 +198,7 @@ struct DashboardView: View {
                                 )
                                 PanelRow(
                                     label: l10n.t(.autoBonusSpend),
-                                    value: viewModel.formattedCurrencyFromCents(
-                                        viewModel.dashboard.periodUsage?.planUsage?.bonusSpend
-                                    )
+                                    value: viewModel.formattedCurrencyFromCents(viewModel.autoPoolSpendCents)
                                 )
                                 PanelRow(
                                     label: l10n.t(.apiIncludedLimit),
@@ -323,7 +321,7 @@ struct DashboardView: View {
                             )
                             PanelRow(
                                 label: l10n.t(.autoBonusSpend),
-                                value: viewModel.formattedCurrencyFromCents(plan.bonusSpend)
+                                value: viewModel.formattedCurrencyFromCents(viewModel.autoPoolSpendCents)
                             )
                         }
                     }
@@ -442,7 +440,7 @@ struct DashboardView: View {
                                 )
                                 PanelRow(
                                     label: l10n.t(.autoBonusSpend),
-                                    value: viewModel.formattedCurrencyFromCents(plan.bonusSpend)
+                                    value: viewModel.formattedCurrencyFromCents(viewModel.autoPoolSpendCents)
                                 )
                             }
                         }
