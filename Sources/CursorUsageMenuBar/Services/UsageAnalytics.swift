@@ -1,13 +1,15 @@
 import Foundation
 
 enum UsageAnalytics {
-    /// 双用量池：API 按 apiPercentUsed × limit 计算；Auto+Composer 按 bonusSpend
+    /// 双用量池：API 按 apiPercentUsed × limit 计算；Auto+Composer 按第一方模型花费汇总
     static func resolveUsagePools(
         summary: UsageSummary?,
-        period: PeriodUsageResponse?
+        period: PeriodUsageResponse?,
+        aggregated: AggregatedUsageResponse? = nil
     ) -> [UsagePoolMetrics] {
         let plan = summary?.billingPlan
         let periodPlan = period?.planUsage
+        let autoBucketModels = period?.autoBucketModels
 
         let apiPercent = plan?.apiPercentUsed ?? periodPlan?.apiPercentUsed
         let autoPercent = plan?.autoPercentUsed ?? periodPlan?.autoPercentUsed
@@ -17,14 +19,13 @@ enum UsageAnalytics {
             limitCents: apiLimit,
             explicitSpend: periodPlan?.apiSpend
         )
-        let autoSpend = periodPlan?.bonusSpend
-            ?? periodPlan?.autoSpend
-            ?? {
-                guard let total = periodPlan?.totalSpend, let included = periodPlan?.includedSpend else {
-                    return nil
-                }
-                return max(0, total - included)
-            }()
+        let autoSpend = resolveAutoSpendCents(
+            summary: summary,
+            period: period,
+            aggregated: aggregated,
+            autoBucketModels: autoBucketModels,
+            apiUsedCents: apiUsed
+        )
 
         let apiMessage = summary?.namedModelSelectedDisplayMessage
             ?? period?.namedModelSelectedDisplayMessage
@@ -76,6 +77,58 @@ enum UsageAnalytics {
         return explicitSpend
     }
 
+    /// Auto 池花费：接口常不再返回 bonusSpend；优先 aggregated 第一方汇总，其次 total − API 已用
+    static func resolveAutoSpendCents(
+        summary: UsageSummary?,
+        period: PeriodUsageResponse?,
+        aggregated: AggregatedUsageResponse?,
+        autoBucketModels: [String]?,
+        apiUsedCents: Double?
+    ) -> Double? {
+        let periodPlan = period?.planUsage
+
+        if let bonusSpend = periodPlan?.bonusSpend, bonusSpend > 0 {
+            return bonusSpend
+        }
+        if let autoSpend = periodPlan?.autoSpend, autoSpend > 0 {
+            return autoSpend
+        }
+
+        if let fromAggregated = poolSpendCents(
+            from: aggregated,
+            autoBucketModels: autoBucketModels,
+            pool: .firstParty
+        ) {
+            return fromAggregated
+        }
+
+        let totalSpend = periodPlan?.totalSpend
+            ?? aggregated?.totalCostCents
+            ?? summary?.billingPlan?.used
+        if let totalSpend, let apiUsedCents, totalSpend >= apiUsedCents {
+            let derived = totalSpend - apiUsedCents
+            if derived > 0 { return derived }
+        }
+
+        return nil
+    }
+
+    static func poolSpendCents(
+        from aggregated: AggregatedUsageResponse?,
+        autoBucketModels: [String]?,
+        pool: ModelPricingCatalog.Pool
+    ) -> Double? {
+        guard let aggregations = aggregated?.aggregations, !aggregations.isEmpty else { return nil }
+
+        let total = aggregations.reduce(0.0) { sum, item in
+            guard let model = item.modelIntent else { return sum }
+            let itemPool = resolveUsagePool(for: model, autoBucketModels: autoBucketModels)
+            guard itemPool == pool else { return sum }
+            return sum + (item.totalCents ?? 0)
+        }
+        return total > 0 ? total : nil
+    }
+
     /// Billing 总口径：totalPercentUsed + 全周期花费
     static func resolveBillingBaseline(
         summary: UsageSummary?,
@@ -88,7 +141,7 @@ enum UsageAnalytics {
             ?? periodPlan?.totalPercentUsed
             ?? 0
         let canonicalCostCents = aggregated?.totalCostCents ?? periodPlan?.totalSpend
-        let pools = resolveUsagePools(summary: summary, period: period)
+        let pools = resolveUsagePools(summary: summary, period: period, aggregated: aggregated)
 
         guard percent > 0 || canonicalCostCents != nil || pools.contains(where: { $0.percent != nil }) else {
             return nil
@@ -685,9 +738,11 @@ enum UsageAnalytics {
 
     static func spendingBreakdown(
         from period: PeriodUsageResponse?,
-        summary: UsageSummary?
+        summary: UsageSummary?,
+        aggregated: AggregatedUsageResponse? = nil
     ) -> [SpendingBreakdownItem] {
         var items: [SpendingBreakdownItem] = []
+        let periodPlan = period?.planUsage
 
         if let plan = summary?.billingPlan {
             if let total = plan.totalPercentUsed {
@@ -696,18 +751,29 @@ enum UsageAnalytics {
                         id: "total",
                         label: "Billing 总计",
                         percent: total,
-                        spendCents: period?.planUsage?.totalSpend,
+                        spendCents: periodPlan?.totalSpend ?? aggregated?.totalCostCents,
                         colorName: "blue"
                     )
                 )
             }
             if let auto = plan.autoPercentUsed {
+                let apiUsed = resolveAPIUsedCents(
+                    percent: plan.apiPercentUsed ?? periodPlan?.apiPercentUsed,
+                    limitCents: plan.limit ?? periodPlan?.limit,
+                    explicitSpend: periodPlan?.apiSpend
+                )
                 items.append(
                     SpendingBreakdownItem(
                         id: "auto",
                         label: "Auto + Composer",
                         percent: auto,
-                        spendCents: period?.planUsage?.bonusSpend,
+                        spendCents: resolveAutoSpendCents(
+                            summary: summary,
+                            period: period,
+                            aggregated: aggregated,
+                            autoBucketModels: period?.autoBucketModels,
+                            apiUsedCents: apiUsed
+                        ),
                         colorName: "purple"
                     )
                 )
@@ -716,7 +782,7 @@ enum UsageAnalytics {
                 let apiUsed = resolveAPIUsedCents(
                     percent: api,
                     limitCents: plan.limit,
-                    explicitSpend: period?.planUsage?.apiSpend
+                    explicitSpend: periodPlan?.apiSpend
                 )
                 items.append(
                     SpendingBreakdownItem(

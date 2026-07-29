@@ -52,6 +52,10 @@ final class UsageViewModel: ObservableObject {
         dashboard.usagePools.first(where: { $0.id == "api" })?.usedCents
     }
 
+    var autoPoolSpendCents: Double? {
+        dashboard.usagePools.first(where: { $0.id == "auto" })?.spendCents
+    }
+
     var apiPoolLimitCents: Double? {
         dashboard.usagePools.first(where: { $0.id == "api" })?.limitCents
             ?? summary?.planLimit
