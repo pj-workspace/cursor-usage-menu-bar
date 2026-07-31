@@ -2,7 +2,7 @@ import SwiftUI
 
 enum PanelStyle {
     static let width: CGFloat = 340
-    static let dashboardWidth: CGFloat = 400
+    static let dashboardWidth: CGFloat = 420
     static let cornerRadius: CGFloat = 10
     static let sectionSpacing: CGFloat = 10
     static let padding: CGFloat = 14

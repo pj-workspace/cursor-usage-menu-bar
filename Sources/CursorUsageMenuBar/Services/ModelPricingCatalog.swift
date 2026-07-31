@@ -218,6 +218,17 @@ enum ModelPricingCatalog {
         return components.date ?? .distantPast
     }()
 
+    /// Claude Sonnet 5 促销结束日（UTC）：2026-09-01 起恢复标准价
+    private static let claudeSonnet5PromoEndUTC: Date = {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = TimeZone(secondsFromGMT: 0)
+        components.year = 2026
+        components.month = 9
+        components.day = 1
+        return components.date ?? .distantFuture
+    }()
+
     static func estimatedCost(
         for model: String?,
         tokenUsage: UsageEvent.TokenUsage?,
@@ -386,7 +397,7 @@ enum ModelPricingCatalog {
             cacheWritePerMillion: 3.75,
             cacheReadPerMillion: 0.3,
             outputPerMillion: 15.0,
-            notes: "促销至 2026-08-31：输入 $2/M、输出 $10/M。"
+            notes: "标准价；2026-08-31 前促销价为 $2/$10。"
         )),
         (["claude-fable-5"], Rule(
             displayName: "Claude Fable 5",
@@ -656,6 +667,24 @@ enum ModelPricingCatalog {
                 cacheReadPerMillion: 0.2,
                 outputPerMillion: 12.0,
                 notes: "2026-07-30 起降价 20%；缓存写入按未缓存输入价的 1.25 倍；Fast 模式价格 2 倍。"
+            ),
+        ],
+        "claude-sonnet-5": [
+            PricingVersion(
+                effectiveFrom: .distantPast,
+                inputPerMillion: 2.0,
+                cacheWritePerMillion: 2.5,
+                cacheReadPerMillion: 0.2,
+                outputPerMillion: 10.0,
+                notes: "促销至 2026-08-31：输入 $2/M、输出 $10/M。"
+            ),
+            PricingVersion(
+                effectiveFrom: claudeSonnet5PromoEndUTC,
+                inputPerMillion: 3.0,
+                cacheWritePerMillion: 3.75,
+                cacheReadPerMillion: 0.3,
+                outputPerMillion: 15.0,
+                notes: "2026-09-01 起恢复标准价。"
             ),
         ],
     ]

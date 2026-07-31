@@ -9,7 +9,8 @@ final class UsageViewModel: ObservableObject {
     @Published private(set) var lastUpdated: Date?
     @Published var errorMessage: String?
     @Published var hasToken: Bool
-    @Published var selectedTab: DashboardTab = .usage
+    @Published var selectedTab: DashboardTab = .overview
+    @Published private(set) var revokingSessionID: String?
     /// nil = 整个账单周期；否则为某天的 startOfDay
     @Published var selectedDay: Date? = nil
 
@@ -217,6 +218,20 @@ final class UsageViewModel: ObservableObject {
 
     func dismissChangeBanner() {
         changeBanner = nil
+    }
+
+    func revokeSession(_ session: AuthSession) async {
+        guard let token = KeychainService.loadToken() else { return }
+        revokingSessionID = session.sessionId
+        defer { revokingSessionID = nil }
+
+        do {
+            try await apiClient.revokeAuthSession(token: token, sessionId: session.sessionId)
+            await syncFromServer(initialLoad: false)
+        } catch {
+            let language = LocalizationManager.shared.resolved
+            errorMessage = (error as? CursorAPIError)?.message(language: language) ?? error.localizedDescription
+        }
     }
 
     func clearDayFilter() {
