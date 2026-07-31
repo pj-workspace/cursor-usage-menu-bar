@@ -252,10 +252,11 @@ struct UsageEventListView: View {
 private struct ModelBillingRulesSection: View {
     @EnvironmentObject private var l10n: LocalizationManager
     let model: String
+    let eventDate: Date?
     let billingContext: String?
 
     private var rule: ModelPricingCatalog.Rule {
-        ModelPricingCatalog.rule(for: model)
+        ModelPricingCatalog.rule(for: model, at: eventDate)
     }
 
     var body: some View {
@@ -441,6 +442,7 @@ private struct UsageEventRow: View {
                 VStack(alignment: .leading, spacing: 6) {
                     ModelBillingRulesSection(
                         model: event.model ?? event.simplifiedModel,
+                        eventDate: event.eventDate,
                         billingContext: ModelPricingCatalog.billingContext(for: event, language: l10n.resolved)
                     )
 
@@ -466,7 +468,8 @@ private struct UsageEventRow: View {
 
                         if let estimate = ModelPricingCatalog.estimatedCost(
                             for: event.model ?? event.simplifiedModel,
-                            tokenUsage: tokenUsage
+                            tokenUsage: tokenUsage,
+                            at: event.eventDate
                         ) {
                             TokenCalculatedCostSection(
                                 estimate: estimate,
