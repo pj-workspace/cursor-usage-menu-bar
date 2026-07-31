@@ -45,6 +45,19 @@ enum ModelPricingCatalog {
         let outputPerMillion: Double?
         let notes: String?
 
+        func applying(_ version: PricingVersion) -> Rule {
+            Rule(
+                displayName: displayName,
+                provider: provider,
+                pool: pool,
+                inputPerMillion: version.inputPerMillion,
+                cacheWritePerMillion: version.cacheWritePerMillion,
+                cacheReadPerMillion: version.cacheReadPerMillion,
+                outputPerMillion: version.outputPerMillion,
+                notes: version.notes ?? notes
+            )
+        }
+
         func formattedRate(_ value: Double?) -> String {
             guard let value else { return "—" }
             if value < 1 {
@@ -185,9 +198,33 @@ enum ModelPricingCatalog {
         }
     }
 
-    static func estimatedCost(for model: String?, tokenUsage: UsageEvent.TokenUsage?) -> TokenCostEstimate? {
+    struct PricingVersion: Sendable {
+        let effectiveFrom: Date
+        let inputPerMillion: Double?
+        let cacheWritePerMillion: Double?
+        let cacheReadPerMillion: Double?
+        let outputPerMillion: Double?
+        let notes: String?
+    }
+
+    /// OpenAI GPT-5.6 Luna/Terra 降价生效日（UTC，与 Cursor 官网一致）
+    private static let gpt56PriceCutUTC: Date = {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = TimeZone(secondsFromGMT: 0)
+        components.year = 2026
+        components.month = 7
+        components.day = 30
+        return components.date ?? .distantPast
+    }()
+
+    static func estimatedCost(
+        for model: String?,
+        tokenUsage: UsageEvent.TokenUsage?,
+        at date: Date? = nil
+    ) -> TokenCostEstimate? {
         guard let tokenUsage else { return nil }
-        return rule(for: model).estimateCost(from: tokenUsage)
+        return rule(for: model, at: date).estimateCost(from: tokenUsage)
     }
 
     private static let entries: [(slugs: [String], rule: Rule)] = [
@@ -411,6 +448,16 @@ enum ModelPricingCatalog {
             outputPerMillion: 9.0,
             notes: nil
         )),
+        (["gemini-3.6-flash"], Rule(
+            displayName: "Gemini 3.6 Flash",
+            provider: "Google",
+            pool: .api,
+            inputPerMillion: 1.5,
+            cacheWritePerMillion: nil,
+            cacheReadPerMillion: 0.15,
+            outputPerMillion: 7.5,
+            notes: nil
+        )),
         (["gpt-5"], Rule(
             displayName: "GPT-5",
             provider: "OpenAI",
@@ -525,11 +572,11 @@ enum ModelPricingCatalog {
             displayName: "GPT-5.6 Luna",
             provider: "OpenAI",
             pool: .api,
-            inputPerMillion: 1.0,
-            cacheWritePerMillion: 1.25,
-            cacheReadPerMillion: 0.1,
-            outputPerMillion: 6.0,
-            notes: "缓存写入按未缓存输入价的 1.25 倍计费。"
+            inputPerMillion: 0.2,
+            cacheWritePerMillion: 0.25,
+            cacheReadPerMillion: 0.02,
+            outputPerMillion: 1.2,
+            notes: "2026-07-30 降价 80%；缓存写入按未缓存输入价的 1.25 倍；Fast 模式价格 2 倍。"
         )),
         (["gpt-5.6-sol"], Rule(
             displayName: "GPT-5.6 Sol",
@@ -539,17 +586,17 @@ enum ModelPricingCatalog {
             cacheWritePerMillion: 6.25,
             cacheReadPerMillion: 0.5,
             outputPerMillion: 30.0,
-            notes: nil
+            notes: "缓存写入按未缓存输入价的 1.25 倍；Fast 模式价格 2 倍；Max 超 1M 输入 2 倍。"
         )),
         (["gpt-5.6-terra"], Rule(
             displayName: "GPT-5.6 Terra",
             provider: "OpenAI",
             pool: .api,
-            inputPerMillion: 2.5,
-            cacheWritePerMillion: 3.125,
-            cacheReadPerMillion: 0.25,
-            outputPerMillion: 15.0,
-            notes: nil
+            inputPerMillion: 2.0,
+            cacheWritePerMillion: 2.5,
+            cacheReadPerMillion: 0.2,
+            outputPerMillion: 12.0,
+            notes: "2026-07-30 降价 20%；缓存写入按未缓存输入价的 1.25 倍；Fast 模式价格 2 倍。"
         )),
         (["glm-5.2"], Rule(
             displayName: "GLM 5.2",
@@ -573,9 +620,59 @@ enum ModelPricingCatalog {
         )),
     ]
 
+    /// 按生效日维护的历史单价；未列出的模型始终使用 entries 中的当前价
+    private static let versionSchedules: [String: [PricingVersion]] = [
+        "gpt-5.6-luna": [
+            PricingVersion(
+                effectiveFrom: .distantPast,
+                inputPerMillion: 1.0,
+                cacheWritePerMillion: 1.25,
+                cacheReadPerMillion: 0.1,
+                outputPerMillion: 6.0,
+                notes: "2026-07-30 前单价；缓存写入按未缓存输入价的 1.25 倍。"
+            ),
+            PricingVersion(
+                effectiveFrom: gpt56PriceCutUTC,
+                inputPerMillion: 0.2,
+                cacheWritePerMillion: 0.25,
+                cacheReadPerMillion: 0.02,
+                outputPerMillion: 1.2,
+                notes: "2026-07-30 起降价 80%；缓存写入按未缓存输入价的 1.25 倍；Fast 模式价格 2 倍。"
+            ),
+        ],
+        "gpt-5.6-terra": [
+            PricingVersion(
+                effectiveFrom: .distantPast,
+                inputPerMillion: 2.5,
+                cacheWritePerMillion: 3.125,
+                cacheReadPerMillion: 0.25,
+                outputPerMillion: 15.0,
+                notes: "2026-07-30 前单价；缓存写入按未缓存输入价的 1.25 倍。"
+            ),
+            PricingVersion(
+                effectiveFrom: gpt56PriceCutUTC,
+                inputPerMillion: 2.0,
+                cacheWritePerMillion: 2.5,
+                cacheReadPerMillion: 0.2,
+                outputPerMillion: 12.0,
+                notes: "2026-07-30 起降价 20%；缓存写入按未缓存输入价的 1.25 倍；Fast 模式价格 2 倍。"
+            ),
+        ],
+    ]
+
     static func rule(for model: String?) -> Rule {
+        rule(for: model, at: Date())
+    }
+
+    static func rule(for model: String?, at date: Date?) -> Rule {
         guard let model, !model.isEmpty else { return unknownRule(for: "未知模型") }
 
+        let lookupDate = date ?? Date()
+        let (baseRule, canonicalSlug) = resolveBaseRule(for: model)
+        return applyVersionSchedule(to: baseRule, canonicalSlug: canonicalSlug, at: lookupDate)
+    }
+
+    private static func resolveBaseRule(for model: String) -> (Rule, String?) {
         let normalized = normalizeSlug(model)
 
         for entry in entries {
@@ -584,7 +681,7 @@ enum ModelPricingCatalog {
                 if normalized == normalizedSlug
                     || normalized.hasPrefix(normalizedSlug + "-")
                     || normalizedSlug.hasPrefix(normalized + "-") {
-                    return entry.rule
+                    return (entry.rule, normalizedSlug)
                 }
             }
         }
@@ -593,12 +690,24 @@ enum ModelPricingCatalog {
             for slug in entry.slugs {
                 let normalizedSlug = normalizeSlug(slug)
                 if normalized.contains(normalizedSlug) || normalizedSlug.contains(normalized) {
-                    return entry.rule
+                    return (entry.rule, normalizedSlug)
                 }
             }
         }
 
-        return unknownRule(for: model)
+        return (unknownRule(for: model), nil)
+    }
+
+    private static func applyVersionSchedule(to rule: Rule, canonicalSlug: String?, at date: Date) -> Rule {
+        guard let canonicalSlug,
+              let versions = versionSchedules[canonicalSlug],
+              !versions.isEmpty
+        else {
+            return rule
+        }
+
+        let version = versions.last(where: { $0.effectiveFrom <= date }) ?? versions[0]
+        return rule.applying(version)
     }
 
     static func billingContext(for event: UsageEvent) -> String? {
