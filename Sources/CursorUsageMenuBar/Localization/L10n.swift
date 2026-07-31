@@ -16,9 +16,11 @@ enum L10n {
         case goToSettings
 
         // Tabs
-        case tabUsage
-        case tabSpending
-        case tabBilling
+        case tabOverview
+        case tabCharts
+        case tabIncluded
+        case tabEvents
+        case tabAccount
 
         // Today & cycle
         case today
@@ -105,6 +107,17 @@ enum L10n {
         case email
         case plan
         case handle
+        case activeSessions
+        case sessionTypeWeb
+        case sessionTypeClient
+        case sessionTypeMobile
+        case sessionCreated
+        case sessionExpires
+        case sessionRevoke
+        case sessionRevokeConfirm
+        case sessionsEmpty
+        case openWebSessions
+        case cancel
 
         // Settings
         case settingsTitle
@@ -141,6 +154,7 @@ enum L10n {
         case errorSpendingData
         case errorBillingProfile
         case errorAccount
+        case errorActiveSessions
         case errorAggregatedUsage
         case unknownError
 
@@ -255,9 +269,11 @@ enum L10n {
         .setupTokenHint: "Add your session token to view usage, spending, and billing charts.",
         .goToSettings: "Open Settings",
 
-        .tabUsage: "Usage",
-        .tabSpending: "Spending",
-        .tabBilling: "Billing",
+        .tabOverview: "Overview",
+        .tabCharts: "Charts",
+        .tabIncluded: "Included",
+        .tabEvents: "Events",
+        .tabAccount: "Account",
 
         .today: "Today",
         .todayBillingPercent: "Today vs Billing 100%",
@@ -340,6 +356,17 @@ enum L10n {
         .email: "Email",
         .plan: "Plan",
         .handle: "Handle",
+        .activeSessions: "Active Sessions",
+        .sessionTypeWeb: "Web",
+        .sessionTypeClient: "Desktop",
+        .sessionTypeMobile: "Mobile",
+        .sessionCreated: "Created",
+        .sessionExpires: "Expires",
+        .sessionRevoke: "Revoke",
+        .sessionRevokeConfirm: "Revoke this session? You may need to sign in again on that device.",
+        .sessionsEmpty: "No active sessions returned.",
+        .openWebSessions: "Manage on cursor.com",
+        .cancel: "Cancel",
 
         .settingsTitle: "Settings",
         .tokenInstruction: "Sign in to the dashboard in your browser and copy the token from Cookies.",
@@ -374,6 +401,7 @@ enum L10n {
         .errorSpendingData: "Spending data",
         .errorBillingProfile: "Billing profile",
         .errorAccount: "Account info",
+        .errorActiveSessions: "Active sessions",
         .errorAggregatedUsage: "Aggregated usage",
         .unknownError: "Unknown error",
 
@@ -473,9 +501,11 @@ enum L10n {
         .setupTokenHint: "配置 Token 后可查看用量、花费、账单图表。",
         .goToSettings: "前往设置",
 
-        .tabUsage: "用量",
-        .tabSpending: "花费",
-        .tabBilling: "账单",
+        .tabOverview: "概览",
+        .tabCharts: "图表",
+        .tabIncluded: "包含",
+        .tabEvents: "明细",
+        .tabAccount: "账户",
 
         .today: "今日",
         .todayBillingPercent: "今日占 Billing 100%",
@@ -558,6 +588,17 @@ enum L10n {
         .email: "邮箱",
         .plan: "套餐",
         .handle: "Handle",
+        .activeSessions: "活跃会话",
+        .sessionTypeWeb: "网页",
+        .sessionTypeClient: "桌面客户端",
+        .sessionTypeMobile: "移动端",
+        .sessionCreated: "创建",
+        .sessionExpires: "过期",
+        .sessionRevoke: "撤销",
+        .sessionRevokeConfirm: "撤销此会话？该设备可能需要重新登录。",
+        .sessionsEmpty: "未返回活跃会话。",
+        .openWebSessions: "在 cursor.com 管理",
+        .cancel: "取消",
 
         .settingsTitle: "设置",
         .tokenInstruction: "在浏览器登录 Dashboard，从 Cookies 复制 Token。",
@@ -592,6 +633,7 @@ enum L10n {
         .errorSpendingData: "花费数据",
         .errorBillingProfile: "账单资料",
         .errorAccount: "账户信息",
+        .errorActiveSessions: "活跃会话",
         .errorAggregatedUsage: "聚合用量",
         .unknownError: "未知错误",
 
@@ -682,9 +724,11 @@ enum L10n {
 extension DashboardTab {
     func title(language: ResolvedLanguage) -> String {
         switch self {
-        case .usage: return L10n.string(.tabUsage, language: language)
-        case .spending: return L10n.string(.tabSpending, language: language)
-        case .billing: return L10n.string(.tabBilling, language: language)
+        case .overview: return L10n.string(.tabOverview, language: language)
+        case .charts: return L10n.string(.tabCharts, language: language)
+        case .included: return L10n.string(.tabIncluded, language: language)
+        case .events: return L10n.string(.tabEvents, language: language)
+        case .account: return L10n.string(.tabAccount, language: language)
         }
     }
 }

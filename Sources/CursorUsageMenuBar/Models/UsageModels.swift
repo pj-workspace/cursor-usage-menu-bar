@@ -126,6 +126,69 @@ struct AuthMeResponse: Decodable, Sendable {
     var id: String? { sub ?? numericId.map(String.init) }
 }
 
+struct AuthSessionsResponse: Decodable, Sendable {
+    let sessions: [AuthSession]?
+}
+
+struct AuthSession: Decodable, Sendable, Identifiable {
+    let sessionId: String
+    let type: String?
+    let createdAt: String?
+    let expiresAt: String?
+
+    var id: String { sessionId }
+
+    var kind: SessionKind {
+        switch type {
+        case "SESSION_TYPE_WEB": return .web
+        case "SESSION_TYPE_CLIENT": return .client
+        case "SESSION_TYPE_MOBILE": return .mobile
+        default: return .unknown
+        }
+    }
+
+    enum SessionKind: Sendable {
+        case web
+        case client
+        case mobile
+        case unknown
+    }
+
+    func kindLabel(language: ResolvedLanguage) -> String {
+        switch kind {
+        case .web: return L10n.string(.sessionTypeWeb, language: language)
+        case .client: return L10n.string(.sessionTypeClient, language: language)
+        case .mobile: return L10n.string(.sessionTypeMobile, language: language)
+        case .unknown: return type ?? "—"
+        }
+    }
+
+    func formattedTimestamp(_ value: String?, language: ResolvedLanguage) -> String {
+        guard let value,
+              let date = Self.parseDate(value)
+        else {
+            return "—"
+        }
+        return date.formatted(
+            .dateTime
+                .year()
+                .month()
+                .day()
+                .hour()
+                .minute()
+                .locale(language.locale)
+        )
+    }
+
+    private static func parseDate(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: value) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
+    }
+}
+
 struct AggregatedUsageResponse: Decodable, Sendable {
     let aggregations: [ModelAggregation]?
     let totalInputTokens: String?
@@ -611,6 +674,7 @@ struct DashboardSnapshot: Sendable {
     let aggregatedUsage: AggregatedUsageResponse?
     let userProfile: UserProfileResponse?
     let authMe: AuthMeResponse?
+    let activeSessions: [AuthSession]
     let events: [UsageEvent]
     let totalEventCount: Int
     let usageLimit: UsageLimitContext?
@@ -635,6 +699,7 @@ struct DashboardSnapshot: Sendable {
         aggregatedUsage: nil,
         userProfile: nil,
         authMe: nil,
+        activeSessions: [],
         events: [],
         totalEventCount: 0,
         usageLimit: nil,
@@ -701,6 +766,7 @@ struct DashboardSnapshot: Sendable {
             aggregatedUsage: aggregatedUsage,
             userProfile: userProfile,
             authMe: authMe,
+            activeSessions: activeSessions,
             events: page.events,
             totalEventCount: page.totalCount,
             usageLimit: usageLimit,
@@ -728,6 +794,7 @@ struct DashboardSnapshot: Sendable {
             aggregatedUsage: aggregatedUsage,
             userProfile: userProfile,
             authMe: authMe,
+            activeSessions: activeSessions,
             events: events,
             totalEventCount: totalEventCount,
             usageLimit: usageLimit,
@@ -761,6 +828,7 @@ struct DashboardSnapshot: Sendable {
             aggregatedUsage: incoming.aggregatedUsage,
             userProfile: incoming.userProfile,
             authMe: incoming.authMe,
+            activeSessions: incoming.activeSessions,
             events: events,
             totalEventCount: incoming.totalEventCount,
             usageLimit: incoming.usageLimit,
@@ -794,6 +862,7 @@ struct DashboardSnapshot: Sendable {
         hasher.combine(periodUsage?.planUsage?.includedSpend)
         hasher.combine(periodUsage?.planUsage?.bonusSpend)
         hasher.combine(aggregatedUsage?.totalCostCents)
+        hasher.combine(activeSessions.count)
         hasher.combine(totalEventCount)
         hasher.combine(partialErrors.joined(separator: "|"))
         for pool in usagePools {
@@ -858,17 +927,21 @@ struct TodayUsageStats: Sendable {
 }
 
 enum DashboardTab: CaseIterable, Identifiable, Sendable {
-    case usage
-    case spending
-    case billing
+    case overview
+    case charts
+    case included
+    case events
+    case account
 
     var id: String { String(describing: self) }
 
     var icon: String {
         switch self {
-        case .usage: return "chart.bar.fill"
-        case .spending: return "dollarsign.circle.fill"
-        case .billing: return "creditcard.fill"
+        case .overview: return "gauge.with.dots.needle.67percent"
+        case .charts: return "chart.xyaxis.line"
+        case .included: return "tablecells"
+        case .events: return "list.bullet.rectangle"
+        case .account: return "person.crop.circle"
         }
     }
 }

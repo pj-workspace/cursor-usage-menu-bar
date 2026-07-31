@@ -17,13 +17,15 @@ struct CursorAPIClient: Sendable {
         async let periodResult = catchError(.errorSpendingData) { try await fetchCurrentPeriodUsage(token: token) }
         async let profileResult = catchError(.errorBillingProfile) { try await fetchUserProfile(token: token) }
         async let authResult = catchError(.errorAccount) { try await fetchAuthMe(token: token) }
+        async let sessionsResult = catchError(.errorActiveSessions) { try await fetchAuthSessions(token: token) }
 
         let (summary, summaryError) = await summaryResult
         let (periodUsage, periodError) = await periodResult
         let (userProfile, profileError) = await profileResult
         let (authMe, authError) = await authResult
+        let (sessionsResponse, sessionsError) = await sessionsResult
 
-        [summaryError, periodError, profileError, authError]
+        [summaryError, periodError, profileError, authError, sessionsError]
             .compactMap { $0 }
             .forEach { partialErrors.append($0) }
 
@@ -73,6 +75,7 @@ struct CursorAPIClient: Sendable {
             aggregatedUsage: aggregatedUsage,
             userProfile: userProfile,
             authMe: authMe,
+            activeSessions: sessionsResponse?.sessions ?? [],
             events: events,
             totalEventCount: totalEventCount,
             usageLimit: usageLimit,
@@ -202,6 +205,21 @@ struct CursorAPIClient: Sendable {
     func fetchAuthMe(token: String) async throws -> AuthMeResponse {
         try await get(path: "api/auth/me", token: token)
     }
+
+    func fetchAuthSessions(token: String) async throws -> AuthSessionsResponse {
+        try await get(path: "api/auth/sessions", token: token)
+    }
+
+    func revokeAuthSession(token: String, sessionId: String) async throws {
+        let _: EmptyResponse = try await post(
+            path: "api/auth/sessions/revoke",
+            token: token,
+            referer: "https://cursor.com/dashboard/settings",
+            body: ["sessionId": sessionId]
+        )
+    }
+
+    private struct EmptyResponse: Decodable, Sendable {}
 
     struct EventsFetchResult: Sendable {
         let events: [UsageEvent]
