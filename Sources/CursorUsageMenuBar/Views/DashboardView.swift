@@ -476,6 +476,8 @@ struct DashboardView: View {
                 .disabled(viewModel.isInitialLoading || viewModel.isLoadingCharts)
             Button(l10n.t(.settings)) { showSettings = true }
                 .controlSize(.small)
+            Button(l10n.t(.quitApp)) { AppLifecycle.quit() }
+                .controlSize(.small)
         }
     }
 

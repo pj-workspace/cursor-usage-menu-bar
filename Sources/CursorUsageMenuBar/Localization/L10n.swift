@@ -10,6 +10,7 @@ enum L10n {
         case menuNotConfigured
         case refresh
         case settings
+        case quitApp
         case updatedAt
         case getStarted
         case setupTokenHint
@@ -264,6 +265,7 @@ enum L10n {
         .menuNotConfigured: "Setup",
         .refresh: "Refresh",
         .settings: "Settings",
+        .quitApp: "Quit",
         .updatedAt: "Updated %@",
         .getStarted: "Get Started",
         .setupTokenHint: "Add your session token to view usage, spending, and billing charts.",
@@ -496,6 +498,7 @@ enum L10n {
         .menuNotConfigured: "未配置",
         .refresh: "刷新",
         .settings: "设置",
+        .quitApp: "退出",
         .updatedAt: "更新 %@",
         .getStarted: "开始使用",
         .setupTokenHint: "配置 Token 后可查看用量、花费、账单图表。",

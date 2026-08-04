@@ -21,6 +21,9 @@ struct SettingsView: View {
                 refreshCard
                 languageCard
                 statusCard
+                Button(l10n.t(.quitApp)) { AppLifecycle.quit() }
+                    .controlSize(.regular)
+                    .frame(maxWidth: .infinity)
             }
             .padding(PanelStyle.padding)
         }
