@@ -145,9 +145,57 @@ struct DashboardView: View {
                 todayStatsContent
             }
 
+            cloudAgentUsageCard
+
             if !viewModel.isDayFilterActive {
                 PanelCard(title: l10n.t(.cycleUsage)) {
                     cycleSummaryContent
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var cloudAgentUsageCard: some View {
+        PanelCard(title: l10n.t(.cloudAgentUsage)) {
+            if viewModel.isCloudAgentStatsPending {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(l10n.t(.cloudAgentLoadingHint))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if viewModel.displayedCloudAgentUsage.hasData {
+                cloudAgentUsageContent(viewModel.displayedCloudAgentUsage)
+            } else {
+                Text(l10n.t(.cloudAgentEmpty))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func cloudAgentUsageContent(_ usage: CloudAgentUsageSummary) -> some View {
+        VStack(spacing: 8) {
+            PanelRow(label: l10n.t(.requestCount), value: "\(usage.eventCount)")
+            PanelRow(
+                label: l10n.t(.spend),
+                value: viewModel.formattedCurrencyFromCents(usage.totalChargedCents)
+            )
+            PanelRow(label: l10n.t(.token), value: formatTokens(usage.totalTokens))
+            PanelRow(label: l10n.t(.uniqueCloudAgents), value: "\(usage.uniqueAgentCount)")
+
+            if !usage.topModels.isEmpty {
+                Divider().padding(.vertical, 2)
+                Text(l10n.t(.cloudAgentTopModels))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                ForEach(usage.topModels) { slice in
+                    PanelRow(
+                        label: slice.model,
+                        value: "\(slice.count) · \(viewModel.formattedCurrencyFromCents(slice.cents))"
+                    )
                 }
             }
         }

@@ -1,5 +1,24 @@
 import SwiftUI
 
+private enum UsageSourceFilter: String, CaseIterable, Identifiable {
+    case all
+    case cloudAgent
+    case local
+
+    var id: String { rawValue }
+
+    func title(language: ResolvedLanguage) -> String {
+        switch self {
+        case .all:
+            return L10n.string(.sourceAll, language: language)
+        case .cloudAgent:
+            return L10n.string(.sourceCloudAgent, language: language)
+        case .local:
+            return L10n.string(.sourceLocal, language: language)
+        }
+    }
+}
+
 struct UsageEventListView: View {
     @EnvironmentObject private var l10n: LocalizationManager
     let cachedEvents: [UsageEvent]?
@@ -15,6 +34,7 @@ struct UsageEventListView: View {
 
     @State private var searchText = ""
     @State private var selectedModel = L10n.allModelsMarker
+    @State private var selectedSource: UsageSourceFilter = .all
     @State private var filterPage = 1
     @State private var expandedEventID: String?
 
@@ -25,6 +45,7 @@ struct UsageEventListView: View {
     private var isGlobalFilterActive: Bool {
         forceLocalPaging
             || selectedModel != L10n.allModelsMarker
+            || selectedSource != .all
             || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
@@ -39,10 +60,19 @@ struct UsageEventListView: View {
         return cachedEvents.filter { event in
             let matchesModel = selectedModel == L10n.allModelsMarker || event.model == selectedModel
             guard matchesModel else { return false }
+            switch selectedSource {
+            case .all:
+                break
+            case .cloudAgent:
+                guard event.isCloudAgent else { return false }
+            case .local:
+                guard !event.isCloudAgent else { return false }
+            }
             guard !query.isEmpty else { return true }
             let haystack = [
                 event.model,
                 event.kind,
+                event.cloudAgentId,
                 event.conversationId,
                 event.kindLabel(language: l10n.resolved),
                 event.formattedTime,
@@ -127,13 +157,21 @@ struct UsageEventListView: View {
                 .textFieldStyle(.roundedBorder)
                 .font(.caption)
 
+                Picker(l10n.t(.sourceFilter), selection: $selectedSource) {
+                    ForEach(UsageSourceFilter.allCases) { source in
+                        Text(source.title(language: l10n.resolved)).tag(source)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 108)
+
                 Picker(l10n.t(.model), selection: $selectedModel) {
                     ForEach(modelOptions, id: \.self) { model in
                         Text(model == L10n.allModelsMarker ? l10n.t(.allModels) : model).tag(model)
                     }
                 }
                 .labelsHidden()
-                .frame(width: 140)
+                .frame(width: 120)
             }
 
             if isGlobalFilterActive, !canFilterGlobally {
@@ -165,6 +203,10 @@ struct UsageEventListView: View {
             expandedEventID = nil
         }
         .onChange(of: selectedModel) { _, _ in
+            filterPage = 1
+            expandedEventID = nil
+        }
+        .onChange(of: selectedSource) { _, _ in
             filterPage = 1
             expandedEventID = nil
         }
@@ -405,6 +447,12 @@ private struct UsageEventRow: View {
                             Text(event.model ?? event.simplifiedModel)
                                 .font(.caption.weight(.semibold))
                                 .lineLimit(2)
+                            if event.isCloudAgent {
+                                StatusBadge(
+                                    text: l10n.t(.cloudAgentBadge),
+                                    isActive: true
+                                )
+                            }
                             StatusBadge(
                                 text: event.kindLabel(language: l10n.resolved),
                                 isActive: event.isChargeable ?? true
@@ -455,6 +503,9 @@ private struct UsageEventRow: View {
                     }
                     if let conversationId = event.conversationId {
                         detailRow(l10n.t(.conversationId), conversationId)
+                    }
+                    if let cloudAgentId = event.cloudAgentId, !cloudAgentId.isEmpty {
+                        detailRow(l10n.t(.cloudAgentId), cloudAgentId)
                     }
                     if let tokenUsage = event.tokenUsage {
                         detailRow(l10n.t(.inputTokens), UsageEvent.formatTokenCount(tokenUsage.inputTokens))
