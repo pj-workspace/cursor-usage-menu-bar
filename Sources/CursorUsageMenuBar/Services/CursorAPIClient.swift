@@ -92,6 +92,7 @@ struct CursorAPIClient: Sendable {
                 aggregated: aggregatedUsage
             ),
             todayStats: .empty,
+            cloudAgentUsage: .empty,
             partialErrors: partialErrors,
             billingCycleStartMs: startMsString,
             billingCycleEndMs: endMsString,

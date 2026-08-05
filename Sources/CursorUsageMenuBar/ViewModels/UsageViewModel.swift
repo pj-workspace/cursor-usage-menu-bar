@@ -312,6 +312,17 @@ final class UsageViewModel: ObservableObject {
         return dashboard.modelBreakdown
     }
 
+    var displayedCloudAgentUsage: CloudAgentUsageSummary {
+        if isDayFilterActive || cachedUsageEvents != nil {
+            return UsageAnalytics.cloudAgentUsage(from: filteredUsageEvents)
+        }
+        return dashboard.cloudAgentUsage
+    }
+
+    var isCloudAgentStatsPending: Bool {
+        !isDayFilterActive && cachedUsageEvents == nil && isLoadingCharts
+    }
+
     func formattedSelectedDayLabel(language: ResolvedLanguage) -> String {
         guard let selectedDay else {
             return L10n.string(.dayFilterAll, language: language)

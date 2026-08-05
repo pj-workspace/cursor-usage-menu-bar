@@ -222,9 +222,16 @@ struct UsageEvent: Codable, Sendable, Identifiable {
     let requestsCosts: Double?
     let isTokenBasedCall: Bool?
     let isChargeable: Bool?
+    let isHeadless: Bool?
+    let cloudAgentId: String?
     let conversationId: String?
     let subscriptionProductId: String?
     let tokenUsage: TokenUsage?
+
+    /// 云 Agent 后台运行（`isHeadless` 或带 `cloudAgentId`）
+    var isCloudAgent: Bool {
+        isHeadless == true || !(cloudAgentId?.isEmpty ?? true)
+    }
 
     struct TokenUsage: Codable, Sendable {
         let inputTokens: Int?
@@ -239,6 +246,7 @@ struct UsageEvent: Codable, Sendable, Identifiable {
             timestamp,
             model,
             kind,
+            cloudAgentId,
             conversationId,
             chargedCents.map { String($0) },
         ]
@@ -273,6 +281,8 @@ struct UsageEvent: Codable, Sendable, Identifiable {
             return L10n.string(.kindPro, language: language)
         case "USAGE_EVENT_KIND_INCLUDED_IN_BUSINESS":
             return L10n.string(.kindBusiness, language: language)
+        case "USAGE_EVENT_KIND_INCLUDED_IN_ULTRA":
+            return L10n.string(.kindUltra, language: language)
         case "USAGE_EVENT_KIND_USAGE_BASED":
             return L10n.string(.kindUsageBased, language: language)
         case "USAGE_EVENT_KIND_FREE":
@@ -668,6 +678,24 @@ struct UsageEventsPage: Sendable {
     }
 }
 
+struct CloudAgentUsageSummary: Sendable {
+    let eventCount: Int
+    let totalChargedCents: Double
+    let totalTokens: Int
+    let uniqueAgentCount: Int
+    let topModels: [ModelSpendSlice]
+
+    var hasData: Bool { eventCount > 0 }
+
+    static let empty = CloudAgentUsageSummary(
+        eventCount: 0,
+        totalChargedCents: 0,
+        totalTokens: 0,
+        uniqueAgentCount: 0,
+        topModels: []
+    )
+}
+
 struct DashboardSnapshot: Sendable {
     let summary: UsageSummary?
     let periodUsage: PeriodUsageResponse?
@@ -687,6 +715,7 @@ struct DashboardSnapshot: Sendable {
     let spendSummary: SpendSummaryMetrics
     let spendingBreakdown: [SpendingBreakdownItem]
     let todayStats: TodayUsageStats
+    let cloudAgentUsage: CloudAgentUsageSummary
     let partialErrors: [String]
     let billingCycleStartMs: String?
     let billingCycleEndMs: String?
@@ -712,6 +741,7 @@ struct DashboardSnapshot: Sendable {
         spendSummary: .empty,
         spendingBreakdown: [],
         todayStats: .empty,
+        cloudAgentUsage: .empty,
         partialErrors: [],
         billingCycleStartMs: nil,
         billingCycleEndMs: nil,
@@ -779,6 +809,7 @@ struct DashboardSnapshot: Sendable {
             spendSummary: spendSummary,
             spendingBreakdown: spendingBreakdown,
             todayStats: todayStats,
+            cloudAgentUsage: cloudAgentUsage,
             partialErrors: partialErrors,
             billingCycleStartMs: billingCycleStartMs,
             billingCycleEndMs: billingCycleEndMs,
@@ -812,6 +843,7 @@ struct DashboardSnapshot: Sendable {
             spendSummary: UsageAnalytics.spendSummary(from: periodUsage, aggregated: aggregatedUsage),
             spendingBreakdown: spendingBreakdown,
             todayStats: UsageAnalytics.todayStats(from: allEvents, billing: usageLimit),
+            cloudAgentUsage: UsageAnalytics.cloudAgentUsage(from: allEvents),
             partialErrors: partialErrors,
             billingCycleStartMs: billingCycleStartMs,
             billingCycleEndMs: billingCycleEndMs,
@@ -841,6 +873,7 @@ struct DashboardSnapshot: Sendable {
             spendSummary: incoming.spendSummary,
             spendingBreakdown: incoming.spendingBreakdown,
             todayStats: todayStats,
+            cloudAgentUsage: cloudAgentUsage,
             partialErrors: incoming.partialErrors,
             billingCycleStartMs: incoming.billingCycleStartMs,
             billingCycleEndMs: incoming.billingCycleEndMs,
@@ -906,6 +939,8 @@ struct DashboardSnapshot: Sendable {
         hasher.combine(todayStats.eventCount)
         hasher.combine(todayStats.totalChargedCents)
         hasher.combine(todayStats.dailyPercent)
+        hasher.combine(cloudAgentUsage.eventCount)
+        hasher.combine(cloudAgentUsage.totalChargedCents)
         return hasher.finalize()
     }
 }

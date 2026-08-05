@@ -182,6 +182,17 @@ enum L10n {
         case allModels
         case searchAll
         case searchPage
+        case sourceFilter
+        case sourceAll
+        case sourceCloudAgent
+        case sourceLocal
+        case cloudAgentBadge
+        case cloudAgentId
+        case cloudAgentUsage
+        case cloudAgentLoadingHint
+        case cloudAgentEmpty
+        case uniqueCloudAgents
+        case cloudAgentTopModels
         case filterStatus
         case waitingCache
         case listStatus
@@ -237,6 +248,7 @@ enum L10n {
         case kindProPlus
         case kindPro
         case kindBusiness
+        case kindUltra
         case kindUsageBased
         case kindFree
 
@@ -427,6 +439,17 @@ enum L10n {
         .allModels: "All models",
         .searchAll: "Search all…",
         .searchPage: "Search this page…",
+        .sourceFilter: "Source",
+        .sourceAll: "All sources",
+        .sourceCloudAgent: "Cloud Agent",
+        .sourceLocal: "Local",
+        .cloudAgentBadge: "Cloud",
+        .cloudAgentId: "Cloud Agent ID",
+        .cloudAgentUsage: "Cloud Agent usage",
+        .cloudAgentLoadingHint: "Load full event cache to see Cloud Agent stats",
+        .cloudAgentEmpty: "No Cloud Agent usage in this period",
+        .uniqueCloudAgents: "Unique agents",
+        .cloudAgentTopModels: "Top models",
         .filterStatus: "%d matches · page %d/%d",
         .waitingCache: "%d total · waiting for full cache…",
         .listStatus: "%d total · page %d/%d",
@@ -480,6 +503,7 @@ enum L10n {
         .kindProPlus: "Pro+ included",
         .kindPro: "Pro included",
         .kindBusiness: "Business included",
+        .kindUltra: "Ultra included",
         .kindUsageBased: "Usage-based",
         .kindFree: "Free",
 
@@ -660,6 +684,17 @@ enum L10n {
         .allModels: "全部模型",
         .searchAll: "搜索全部…",
         .searchPage: "搜索本页…",
+        .sourceFilter: "来源",
+        .sourceAll: "全部来源",
+        .sourceCloudAgent: "云 Agent",
+        .sourceLocal: "本地",
+        .cloudAgentBadge: "云 Agent",
+        .cloudAgentId: "云 Agent ID",
+        .cloudAgentUsage: "云 Agent 用量",
+        .cloudAgentLoadingHint: "加载全量明细后可查看云 Agent 统计",
+        .cloudAgentEmpty: "本周期暂无云 Agent 用量",
+        .uniqueCloudAgents: "独立 Agent 数",
+        .cloudAgentTopModels: "主要模型",
         .filterStatus: "筛选 %d 条 · 第 %d/%d 页",
         .waitingCache: "共 %d 条 · 等待全量缓存…",
         .listStatus: "共 %d 条 · 第 %d/%d 页",
@@ -713,6 +748,7 @@ enum L10n {
         .kindProPlus: "Pro+ 包含",
         .kindPro: "Pro 包含",
         .kindBusiness: "Business 包含",
+        .kindUltra: "Ultra 包含",
         .kindUsageBased: "按量计费",
         .kindFree: "免费",
 

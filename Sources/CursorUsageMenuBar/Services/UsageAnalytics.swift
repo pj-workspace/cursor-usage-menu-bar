@@ -844,6 +844,24 @@ enum UsageAnalytics {
         )
     }
 
+    static func cloudAgentUsage(from events: [UsageEvent]) -> CloudAgentUsageSummary {
+        let cloudEvents = events.filter(\.isCloudAgent)
+        guard !cloudEvents.isEmpty else { return .empty }
+
+        let cents = cloudEvents.compactMap(\.chargedCents).reduce(0, +)
+        let tokens = cloudEvents.map(\.totalTokens).reduce(0, +)
+        let agentIDs = Set(cloudEvents.compactMap(\.cloudAgentId).filter { !$0.isEmpty })
+        let topModels = modelBreakdownFromEvents(cloudEvents).prefix(5).map { $0 }
+
+        return CloudAgentUsageSummary(
+            eventCount: cloudEvents.count,
+            totalChargedCents: cents,
+            totalTokens: tokens,
+            uniqueAgentCount: agentIDs.isEmpty ? cloudEvents.count : agentIDs.count,
+            topModels: topModels
+        )
+    }
+
     static func parseISODate(_ value: String?) -> Date? {
         guard let value else { return nil }
         if let milliseconds = Double(value), value.allSatisfy(\.isNumber) {
